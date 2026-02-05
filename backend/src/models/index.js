@@ -4,6 +4,7 @@ const { DataTypes } = require("sequelize");
 // SQL Models
 const User = require("./sql/user.model")(sequelize, DataTypes);
 const Assignment = require("./sql/assignment.model")(sequelize, DataTypes);
+const PageMaintenance = require("./page_maintanance.model");
 // Models to be implemented
 // const ModelVersion = require("./sql/model_version.model")(sequelize, DataTypes);
 // const EvaluationPaper = require("./sql/evaluation_paper.model")(sequelize, DataTypes);
@@ -24,6 +25,7 @@ module.exports = {
         sequelize,
         User,
         Assignment,
+        PageMaintenance,
     },
     mongo: {
         EvaluationResponse,

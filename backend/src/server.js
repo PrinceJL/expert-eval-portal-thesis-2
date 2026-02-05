@@ -6,8 +6,6 @@ const { sql } = require("./models/index"); // Import SQL models to trigger init
 // Connect to MongoDB
 connectMongo();
 
-const { mongo } = require("./models");
-
 // Sync PostgreSQL (Sequelize)
 // In production, use migrations instead of sync({ force: false })
 sql.sequelize.sync({ force: false })

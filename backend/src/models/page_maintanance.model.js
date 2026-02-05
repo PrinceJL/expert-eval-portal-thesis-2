@@ -1,4 +1,5 @@
 const { DataTypes } = require('sequelize');
+const sequelize = require('../config/postgres');
 const { sequelize } = require('../config/postgres');
 
 const PageMaintenance = sequelize.define('PageMaintenance', {

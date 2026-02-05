@@ -16,6 +16,19 @@ const EvaluationAssignmentSchema = new Schema({
     date_assigned: { type: Date, default: Date.now },
     deadline: { type: Date },
     completion_status: { type: Boolean, default: false },
+
+    // Final submit locks the assignment from further edits
+    final_submitted: { type: Boolean, default: false },
+    submitted_at: { type: Date, default: null },
+    last_draft_saved_at: { type: Date, default: null },
+}, { timestamps: true });
+
+EvaluationAssignmentSchema.pre("save", function () {
+    // Once finalized, keep completed
+    if (this.final_submitted) {
+        this.completion_status = true;
+        return;
+    }
 }, { timestamps: true });
 
 EvaluationAssignmentSchema.pre("save", function () {
