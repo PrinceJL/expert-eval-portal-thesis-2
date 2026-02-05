@@ -10,6 +10,8 @@ const messageRoutes = require("./routes/message.routes");
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use("/uploads", express.static("uploads"));
+
 
 // Public system endpoints
 app.use("/system", systemRoutes);

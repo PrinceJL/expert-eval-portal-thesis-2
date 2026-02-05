@@ -12,5 +12,7 @@ router.get("/contacts", messageController.getContacts);
 router.get("/inbox", messageController.inbox);
 router.get("/conversation/:conversationId", messageController.getConversation);
 router.post("/send", messageController.send);
+router.post("/upload", messageController.uploadMedia);
+
 
 module.exports = router;

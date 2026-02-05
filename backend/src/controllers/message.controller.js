@@ -1,6 +1,9 @@
 const { sql, mongo } = require("../models");
 const messageService = require("../services/message.service");
 const notificationService = require("../services/notification.service");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 
 function convoId(a, b) {
   const x = String(a);
@@ -8,32 +11,93 @@ function convoId(a, b) {
   return x < y ? `${x}-${y}` : `${y}-${x}`;
 }
 
+// Multer Config
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = "uploads/";
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
+}).single("file");
+
 async function getContacts(req, res) {
   try {
     const me = req.user;
     const where = { isActive: true };
-    // If group is present, keep contacts within same group (practical default)
-    if (me?.group) where.group = me.group;
 
-    const users = await sql.User.findAll({
-      where,
-      attributes: ["id", "username", "email", "role", "group"],
-      order: [["username", "ASC"]]
-    });
+    // Customers (EXPERTS) should be able to see all ADMINS and RESEARCHERS
+    // Admins should see everyone.
+    const isExpert = me.role === "EXPERT";
+    const isAdmin = me.role === "ADMIN" || me.role === "RESEARCHER";
+
+    const { Op } = require("sequelize");
+
+    let users;
+    if (isExpert) {
+      // Experts see Admins/Researchers (all groups) + peers in their group
+      users = await sql.User.findAll({
+        where: {
+          [Op.or]: [
+            { role: ["ADMIN", "RESEARCHER"] },
+            { group: me.group, role: "EXPERT" }
+          ],
+          isActive: true
+        },
+        attributes: ["id", "username", "email", "role", "group"],
+        order: [["username", "ASC"]]
+      });
+    } else {
+      // Admins see everyone
+      users = await sql.User.findAll({
+        where: { isActive: true },
+        attributes: ["id", "username", "email", "role", "group"],
+        order: [["username", "ASC"]]
+      });
+    }
 
     const filtered = users.filter((u) => String(u.id) !== String(me.id));
     res.json(filtered);
   } catch (e) {
+    console.error("getContacts error:", e);
     res.status(500).json({ error: "Failed to load contacts" });
   }
+}
+
+async function uploadMedia(req, res) {
+  upload(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ error: err.message || "Upload failed" });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    const fileType = req.file.mimetype.startsWith("image/") ? "image" :
+      req.file.mimetype.startsWith("video/") ? "video" : "document";
+
+    res.json({
+      url: `/uploads/${req.file.filename}`,
+      filename: req.file.originalname,
+      type: fileType,
+      size: req.file.size
+    });
+  });
 }
 
 async function send(req, res) {
   try {
     const senderId = String(req.user.id);
-    const { recipientId, content } = req.body;
-    if (!recipientId || !content) {
-      return res.status(400).json({ error: "Missing recipientId/content" });
+    const { recipientId, content, attachments } = req.body;
+    if (!recipientId || (!content && !attachments?.length)) {
+      return res.status(400).json({ error: "Missing recipientId or message content" });
     }
 
     const conversationId = convoId(senderId, recipientId);
@@ -41,7 +105,8 @@ async function send(req, res) {
       conversationId,
       senderId,
       recipientId: String(recipientId),
-      content: String(content)
+      content: String(content || ""),
+      attachments: attachments || []
     });
 
     try {
@@ -52,7 +117,7 @@ async function send(req, res) {
         "You received a new message.",
         { conversationId }
       );
-    } catch {}
+    } catch { }
 
     res.status(201).json(msg);
   } catch (e) {
@@ -67,7 +132,6 @@ async function getConversation(req, res) {
     const limit = Math.min(parseInt(req.query.limit || "50", 10), 200);
     const skip = Math.max(parseInt(req.query.skip || "0", 10), 0);
 
-    // Ownership: conversationId must include userId
     if (!String(conversationId).includes(userId)) {
       return res.status(403).json({ error: "Forbidden" });
     }
@@ -77,9 +141,7 @@ async function getConversation(req, res) {
       .skip(skip)
       .limit(limit);
 
-    // Mark as read (recipient side)
     await messageService.markAsRead(conversationId, userId);
-
     res.json(msgs);
   } catch (e) {
     res.status(400).json({ error: e.message || "Failed to load conversation" });
@@ -117,5 +179,6 @@ module.exports = {
   getContacts,
   send,
   getConversation,
-  inbox
+  inbox,
+  uploadMedia
 };

@@ -1,24 +1,25 @@
-
-// src/pages/Dashboard.jsx
 import { useEffect, useState, useRef } from "react";
-import StatCard from "../components/StatCard";
-import EvaluationTable from "../components/EvaluationTable";
 import { Link } from "react-router-dom";
 import { CircularProgressbarWithChildren, buildStyles } from "react-circular-progressbar";
 import 'react-circular-progressbar/dist/styles.css';
+
+import { useAuth } from "../auth/AuthContext";
+import StatCard from "../components/StatCard";
+import EvaluationTable from "../components/EvaluationTable";
 
 // Mock data imports
 import dimensionsData from "../data/mockD.json";
 import evaluationsData from "../data/mock.json";
 
 export default function Dashboard() {
+    const { user } = useAuth();
     const [dimensions, setDimensions] = useState([]);
     const [evaluations, setEvaluations] = useState([]);
     const scrollRef = useRef(null);
     const [scrollIndex, setScrollIndex] = useState(0);
 
-    // Mock user and performance
-    const userName = "User123";
+    // Mock performance
+    const userName = user?.username || "Guest";
     const currentPerformance = 72; // %
     const goalPerformance = 85; // %
     const maxPerformance = 100; // %

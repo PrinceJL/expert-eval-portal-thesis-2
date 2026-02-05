@@ -7,9 +7,10 @@ const MessageSchema = new mongoose.Schema({
     content: { type: String, required: true },
 
     attachments: [{
-        type: { type: String, enum: ["image", "document"] },
+        type: { type: String, enum: ["image", "document", "video"] },
         url: String,
-        filename: String
+        filename: String,
+        size: Number
     }],
 
     // Track which model version was active when this message was sent
