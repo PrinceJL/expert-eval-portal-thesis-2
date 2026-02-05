@@ -29,6 +29,9 @@ EvaluationAssignmentSchema.pre("save", function () {
         this.completion_status = true;
         return;
     }
+}, { timestamps: true });
+
+EvaluationAssignmentSchema.pre("save", function () {
     if (
         Array.isArray(this.user_evaluation_output) &&
         this.user_evaluation_output.every(

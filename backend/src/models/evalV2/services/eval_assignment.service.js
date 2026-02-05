@@ -83,6 +83,13 @@ async function finalSubmit(assignmentId, userEvaluationOutput) {
     assignment.last_draft_saved_at = new Date();
     await assignment.save();
     return assignment;
+    return EvaluationAssignment.findByIdAndUpdate(
+        assignmentId,
+        {
+            user_evaluation_output: userEvaluationOutput
+        },
+        { new: true, runValidators: true }
+    );
 }
 
 /**

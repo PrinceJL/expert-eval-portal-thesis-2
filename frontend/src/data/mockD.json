@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Jurisdictional Precision",
+    "avgScore": 4.2,
+    "sentiment": "Positive"
+  },
+  {
+    "name": "Response Clarity",
+    "avgScore": 3.7,
+    "sentiment": "Neutral"
+  },
+  {
+    "name": "Legal Accuracy",
+    "avgScore": 4.5,
+    "sentiment": "Positive"
+  },
+  {
+    "name": "User Engagement",
+    "avgScore": 3.2,
+    "sentiment": "Negative"
+  },
+  {
+    "name": "Timeliness",
+    "avgScore": 4.0,
+    "sentiment": "Positive"
+  }
+]
