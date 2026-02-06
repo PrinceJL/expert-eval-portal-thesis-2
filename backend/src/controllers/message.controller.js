@@ -14,8 +14,9 @@ function convoId(a, b) {
 // Multer Config
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const dir = "uploads/";
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+    const isVercel = process.env.VERCEL === '1';
+    const dir = isVercel ? "/tmp/uploads/" : "uploads/";
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     cb(null, dir);
   },
   filename: (req, file, cb) => {

@@ -16,6 +16,11 @@ sql.sequelize.sync({ force: false })
         console.error("Failed to sync PostgreSQL:", err);
     });
 
-app.listen(3000, () => {
-    console.log("Server running on port 3000");
-});
+const PORT = process.env.PORT || 3000;
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+    });
+}
+
+module.exports = app;

@@ -61,12 +61,12 @@ export function AuthProvider({ children }) {
   }, [isAuthed]);
 
   // === Actions ===
-  const login = async ({ username, password, group }) => {
+  const login = async ({ username, password }) => {
     const deviceFingerprint = getDeviceFingerprint();
 
     const data = await apiFetch('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ username, password, group, deviceFingerprint })
+      body: JSON.stringify({ username, password, deviceFingerprint })
     });
 
     localStorage.setItem('accessToken', data.accessToken);

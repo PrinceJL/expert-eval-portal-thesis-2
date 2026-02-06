@@ -9,13 +9,13 @@ function makeRefreshToken() {
 }
 
 async function login({ username, password, group, deviceFingerprint, req }) {
-    if (!username || !password || !group) {
-        const err = new Error("Missing username/password/group");
+    if (!username || !password) {
+        const err = new Error("Missing username/password");
         err.statusCode = 400;
         throw err;
     }
 
-    const user = await sql.User.findOne({ where: { username, group, isActive: true } });
+    const user = await sql.User.findOne({ where: { username, isActive: true } });
     if (!user) {
         const err = new Error("Invalid credentials");
         err.statusCode = 401;
