@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:3000";
+const BASE_URL = "http://localhost:3000/api";
 
 async function test_e2e() {
     console.log("--- Starting E2E API Verification ---");
@@ -40,7 +40,7 @@ async function test_e2e() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                username: "admin2",
+                username: "admin1",
                 password: "pass123",
                 group: "TEAM404"
             })

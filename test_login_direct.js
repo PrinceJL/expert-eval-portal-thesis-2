@@ -1,8 +1,10 @@
 require("dotenv").config();
 const { sql } = require("./server/models");
 const authService = require("./server/services/auth.service");
+const { connectDB } = require("./server/app");
 
 async function testLogin() {
+    await connectDB();
     const username = process.env.ADMIN_USERNAME || "admin0";
     const password = process.env.ADMIN_PASSWORD || "pass123";
 

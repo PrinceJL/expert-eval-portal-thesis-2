@@ -9,45 +9,40 @@ const messageRoutes = require("./routes/message.routes");
 
 const app = express();
 
-// --- Database Connection Logic (Serverless optimized) ---
+// --- Database Connection Logic (Refactored for Performance) ---
 const connectMongo = require("./config/mongo");
 const { sql } = require("./models/index");
 const mongoose = require("mongoose");
 
-let dbPromise = null;
-const initDBs = async () => {
-    if (dbPromise) return dbPromise;
-    dbPromise = (async () => {
-        try {
-            await connectMongo();
-            await sql.sequelize.authenticate();
-            if (process.env.NODE_ENV === "development") {
-                await sql.sequelize.sync({ alter: true });
-                console.log("Database schema synced for development");
-            }
-            console.log("Database connections initialized successfully");
-        } catch (error) {
-            console.error("Database initialization failed:", error);
-            dbPromise = null;
-            throw error;
-        }
-    })();
-    return dbPromise;
+let isConnected = false;
+
+const connectDB = async () => {
+    if (isConnected) return;
+    try {
+        await connectMongo();
+        await sql.sequelize.authenticate();
+        console.log("Database connections established");
+        isConnected = true;
+    } catch (error) {
+        console.error("Database connection failed:", error);
+        throw error;
+    }
 };
 
-app.use(async (req, res, next) => {
+const syncDB = async () => {
     try {
-        await initDBs();
-        // Resilience check for serverless pause/resume
-        if (mongoose.connection.readyState !== 1) {
-            dbPromise = null;
-            await initDBs();
+        if (process.env.NODE_ENV === "development") {
+            await sql.sequelize.sync({ alter: true });
+            console.log("Database schema synced for development");
         }
-        next();
     } catch (error) {
-        res.status(500).json({ error: "Database connection failed", details: error.message });
+        console.error("Database sync failed:", error);
+        // Don't throw here to avoid crashing if sync fails but DB is up
     }
-});
+};
+
+module.exports = { app, connectDB, syncDB };
+// ----------------------------------------------------
 // ----------------------------------------------------
 
 app.use(cors());
@@ -62,4 +57,4 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/expert", expertRoutes);
 app.use("/api/admin", adminRoutes);
 
-module.exports = app;
+
