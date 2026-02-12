@@ -1,11 +1,5 @@
 {
     "version": 2,
-    "crons": [
-        {
-            "path": "/api/system/health",
-            "schedule": "*/10 * * * *"
-        }
-    ],
     "builds": [
         {
             "src": "package.json",
