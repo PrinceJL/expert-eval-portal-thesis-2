@@ -154,8 +154,8 @@ export default function Navbar() {
       panelDivider: "#43464d",
       panelText: "#f0f3f8",
       subText: "#bec4ce",
-      segmentBg: "#111319",
-      segmentBorder: "#3f434a",
+      segmentBg: "#2b2d31",
+      segmentBorder: "#43464d",
       segActive: "#3e434b",
       segText: "#d4dae5",
       menuText: "#f2f6fb",
@@ -177,8 +177,8 @@ export default function Navbar() {
       panelDivider: "#e5eaf2",
       panelText: "#0f172a",
       subText: "#596274",
-      segmentBg: "#f3f6fb",
-      segmentBorder: "#d7deea",
+      segmentBg: "#ffffff",
+      segmentBorder: "#e5eaf2",
       segActive: "#dbe4f2",
       segText: "#1e293b",
       menuText: "#0f172a",
@@ -350,7 +350,7 @@ export default function Navbar() {
                   <div className="text-sm truncate" style={{ color: palette.subText, marginTop: 4 }}>{displayEmail}</div>
                 </div>
 
-                <div className="px-4 py-3 relative" style={{ borderBottom: `1px solid ${palette.panelDivider}` }}>
+                <div className="px-4 py-3 relative">
                   <button
                     ref={presenceTriggerRef}
                     type="button"
