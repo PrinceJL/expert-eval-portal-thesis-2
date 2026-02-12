@@ -64,6 +64,7 @@ export default function Navbar() {
     { to: "/admin/users", label: "User Management", show: isAdmin },
     { to: "/admin/evaluations", label: "Evaluation Management", show: isAdmin },
     { to: "/admin/maintenance", label: "Maintenance Management", show: isAdmin },
+    { to: "/admin/contact", label: "Contact Info", show: isAdmin },
   ].filter((x) => x.show);
 
   const isDark = resolvedTheme === "dark";

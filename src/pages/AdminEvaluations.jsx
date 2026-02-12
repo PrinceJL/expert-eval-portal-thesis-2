@@ -275,7 +275,7 @@ export default function AdminEvaluations() {
         {/* Header */}
         <div className="flex justify-between items-end mb-8 border-b border-base-200 pb-4">
           <div>
-            <h1 className="text-3xl font-bold text-white">
+            <h1 className="text-3xl font-bold text-base-content">
               Evaluation Management
             </h1>
             <p className="text-base-content/70 mt-2 text-lg">

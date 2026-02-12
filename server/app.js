@@ -58,7 +58,19 @@ module.exports = { app, connectDB, syncDB };
 
 app.use(cors());
 app.use(express.json());
-app.use("/uploads", express.static("uploads"));
+
+// Serve uploaded files
+const path = require("path");
+app.get("/uploads/:filename", (req, res) => {
+    const filePath = path.join(process.cwd(), "uploads", req.params.filename);
+    res.sendFile(filePath, (err) => {
+        if (err) {
+            console.error("Error serving file:", err);
+            res.status(404).json({ error: "File not found" });
+        }
+    });
+});
+
 
 
 // Routes

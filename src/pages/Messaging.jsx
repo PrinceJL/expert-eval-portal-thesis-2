@@ -25,6 +25,7 @@ export default function Messaging() {
   const [error, setError] = useState('');
 
   const [uploading, setUploading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
 
@@ -147,9 +148,21 @@ export default function Messaging() {
 
     if (att.type === 'image') {
       return (
-        <a href={fullUrl} target="_blank" rel="noreferrer" className="block mt-2">
-          <img src={fullUrl} alt={att.filename} className="max-w-full rounded-lg cursor-pointer max-h-60 object-contain bg-base-200" />
-        </a>
+        <div
+          onClick={() => setSelectedImage(fullUrl)}
+          className="block mt-2 cursor-pointer group relative"
+        >
+          <img
+            src={fullUrl}
+            alt={att.filename}
+            className="max-w-full rounded-lg max-h-60 object-contain bg-base-200 transition-opacity group-hover:opacity-90"
+          />
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="white" className="w-8 h-8">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
+            </svg>
+          </div>
+        </div>
       );
     }
     if (att.type === 'video') {
@@ -275,9 +288,9 @@ export default function Messaging() {
                   const mine = String(m.senderId) === String(user.id);
                   return (
                     <div key={m._id} className={`chat ${mine ? 'chat-end' : 'chat-start'}`}>
-                      <div className="chat-header text-xs opacity-50 mb-1">
+                      <div className="chat-header text-xs font-medium mb-1" style={{ opacity: 0.8 }}>
                         {mine ? 'You' : selected.username}
-                        <time className="text-xs opacity-50 ml-1">{fmtTime(m.createdAt)}</time>
+                        <time className="text-xs ml-1" style={{ opacity: 0.7 }}>{fmtTime(m.createdAt)}</time>
                       </div>
                       <div className={`chat-bubble ${mine ? 'chat-bubble-primary' : 'chat-bubble-secondary'}`}>
                         {m.content && <div className="whitespace-pre-wrap">{m.content}</div>}
@@ -307,15 +320,15 @@ export default function Messaging() {
                     accept="image/*,video/*,application/pdf"
                   />
                   <button
-                    className="btn btn-circle btn-ghost"
+                    className="btn btn-circle btn-primary btn-sm"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
-                    title="Upload media"
+                    title="Upload image or file"
                   >
                     {uploading ? (
                       <span className="loading loading-spinner loading-xs"></span>
                     ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
                       </svg>
                     )}
@@ -355,6 +368,28 @@ export default function Messaging() {
           )}
         </div>
       </div>
+
+      {/* Image Modal */}
+      {selectedImage && (
+        <dialog className="modal modal-open" onClick={() => setSelectedImage(null)}>
+          <div className="modal-box max-w-5xl w-full p-0 bg-transparent shadow-none" onClick={(e) => e.stopPropagation()}>
+            <div className="relative">
+              <button
+                className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2 bg-base-100/80 hover:bg-base-100 z-10"
+                onClick={() => setSelectedImage(null)}
+              >
+                ✕
+              </button>
+              <img
+                src={selectedImage}
+                alt="Full size preview"
+                className="w-full h-auto max-h-[90vh] object-contain rounded-lg"
+              />
+            </div>
+          </div>
+          <div className="modal-backdrop bg-black/70" onClick={() => setSelectedImage(null)}></div>
+        </dialog>
+      )}
     </div>
   );
 }
