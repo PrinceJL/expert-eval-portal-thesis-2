@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 
@@ -6,12 +6,21 @@ export default function Login() {
   const { login } = useAuth();
   const nav = useNavigate();
   const loginLogo = '/images/logo-login.png';
+  const LOGIN_SPLASH_MS = 1700;
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showLoginTransition, setShowLoginTransition] = useState(false);
+  const redirectTimerRef = useRef(null);
+
+  useEffect(() => () => {
+    if (redirectTimerRef.current) {
+      window.clearTimeout(redirectTimerRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     if (!error) return undefined;
@@ -33,7 +42,10 @@ export default function Login() {
     setLoading(true);
     try {
       await login({ username: identifier.trim(), password });
-      nav('/dashboard', { replace: true });
+      setShowLoginTransition(true);
+      redirectTimerRef.current = window.setTimeout(() => {
+        nav('/dashboard', { replace: true });
+      }, LOGIN_SPLASH_MS);
     } catch (err) {
       setError(err?.message || 'Login failed');
     } finally {
@@ -55,6 +67,16 @@ export default function Login() {
       }}
     >
       <div className="login-bg-motion" aria-hidden="true" />
+      {showLoginTransition ? (
+        <div
+          className="login-post-splash"
+          role="status"
+          aria-label="Signing in"
+          style={{ '--login-splash-ms': `${LOGIN_SPLASH_MS}ms` }}
+        >
+          <img src={loginLogo} alt="Portal logo" className="login-post-splash-logo" />
+        </div>
+      ) : null}
 
       <div className="login-card-shell">
         <div className="login-logo-behind">
@@ -123,7 +145,7 @@ export default function Login() {
             <button
               className="btn btn-primary login-submit"
               type="submit"
-              disabled={loading}
+              disabled={loading || showLoginTransition}
             >
               {loading ? 'Signing in...' : 'Get Started'}
             </button>

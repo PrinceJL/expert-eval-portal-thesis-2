@@ -128,12 +128,34 @@ button:focus-visible {
   animation: login-halftone-drift 26s linear infinite;
 }
 
+.login-post-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 42%),
+    #050505;
+  animation: login-splash-sequence var(--login-splash-ms, 1700ms) ease-in-out both;
+}
+
+.login-post-splash-logo {
+  width: clamp(220px, 34vw, 420px);
+  height: auto;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: brightness(1.08) drop-shadow(0 10px 24px rgba(255, 255, 255, 0.14));
+  animation: login-splash-logo-sequence var(--login-splash-ms, 1700ms) cubic-bezier(0.2, 0.68, 0.14, 1) both;
+}
+
 .login-logo-behind {
   position: relative;
   width: 100%;
   display: flex;
   justify-content: center;
-  pointer-events: none;
+  pointer-events: auto;
   opacity: 0.88;
 }
 
@@ -200,6 +222,8 @@ button:focus-visible {
   width: min(100%, 340px);
   height: clamp(72px, 16vw, 110px);
   position: relative;
+  transition: transform 220ms ease, filter 220ms ease;
+  will-change: transform, filter;
 }
 
 .login-logo-animated::before {
@@ -224,6 +248,7 @@ button:focus-visible {
   -webkit-mask-size: contain;
   mask-size: contain;
   filter: drop-shadow(0 2px 8px rgba(57, 110, 143, 0.2));
+  transition: filter 220ms ease;
 }
 
 .login-logo-animated::after {
@@ -242,6 +267,23 @@ button:focus-visible {
   mask-position: center;
   -webkit-mask-size: contain;
   mask-size: contain;
+  transition: opacity 220ms ease;
+}
+
+.login-logo-animated:hover {
+  transform: translateY(-1px);
+}
+
+.login-logo-animated:hover::before {
+  filter:
+    brightness(1.08)
+    saturate(1.04)
+    drop-shadow(0 2px 8px rgba(57, 110, 143, 0.28))
+    drop-shadow(0 0 14px rgba(255, 255, 255, 0.55));
+}
+
+.login-logo-animated:hover::after {
+  opacity: 0.34;
 }
 
 @keyframes login-topo-flow {
@@ -325,11 +367,54 @@ button:focus-visible {
   }
 }
 
+@keyframes login-splash-sequence {
+  from {
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  78% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes login-splash-logo-sequence {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: brightness(1.1) drop-shadow(0 12px 26px rgba(255, 255, 255, 0.17));
+  }
+  74% {
+    opacity: 1;
+    transform: translateY(0) scale(1.01);
+    filter: brightness(1.08) drop-shadow(0 10px 24px rgba(255, 255, 255, 0.14));
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px) scale(1.02);
+    filter: brightness(1.04) drop-shadow(0 8px 18px rgba(255, 255, 255, 0.08));
+  }
+}
+
 .login-logo-fallback {
   display: none;
   height: clamp(62px, 13vw, 94px);
   width: auto;
   object-fit: contain;
+  transition: transform 220ms ease, filter 220ms ease;
+}
+
+.login-logo-fallback:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.12) drop-shadow(0 0 12px rgba(255, 255, 255, 0.5));
 }
 
 .login-error {
@@ -358,6 +443,10 @@ button:focus-visible {
     inset: -30%;
     filter: blur(7px);
     opacity: 0.62;
+  }
+
+  .login-post-splash-logo {
+    width: min(70vw, 300px);
   }
 
   .login-card {
@@ -395,7 +484,9 @@ button:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .login-bg-motion,
   .login-bg-motion::before,
-  .login-bg-motion::after {
+  .login-bg-motion::after,
+  .login-post-splash,
+  .login-post-splash-logo {
     animation: none;
   }
 }
