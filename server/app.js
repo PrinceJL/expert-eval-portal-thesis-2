@@ -14,29 +14,54 @@ const app = express();
 // --- Database Connection Logic (Refactored for Performance) ---
 const connectMongo = require("./config/mongo");
 const { sql } = require("./models/index");
-const mongoose = require("mongoose");
 
 let isConnected = false;
+let connectionPromise = null;
 
 const connectDB = async () => {
-    if (isConnected) return;
+    if (isConnected) {
+        return;
+    }
+
+    if (connectionPromise) {
+        await connectionPromise;
+        return;
+    }
+
+    connectionPromise = (async () => {
+        try {
+            console.log("Connecting to MongoDB...");
+            await connectMongo();
+            console.log("MongoDB connected. Connecting to Postgres...");
+
+            // Race authenticate with a timeout to detect hangs
+            const authPromise = sql.sequelize.authenticate();
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("Postgres connection timeout (10s)")), 10000)
+            );
+
+            await Promise.race([authPromise, timeoutPromise]);
+            console.log("Postgres connected. Database connections established");
+            isConnected = true;
+        } catch (error) {
+            console.error("Database connection failed:", error);
+            throw error;
+        } finally {
+            if (!isConnected) {
+                connectionPromise = null;
+            }
+        }
+    })();
+
+    await connectionPromise;
+};
+
+const ensureDBConnected = async (req, res, next) => {
     try {
-        console.log("Connecting to MongoDB...");
-        await connectMongo();
-        console.log("MongoDB connected. Connecting to Postgres...");
-
-        // Race authenticate with a timeout to detect hangs
-        const authPromise = sql.sequelize.authenticate();
-        const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("Postgres connection timeout (10s)")), 10000)
-        );
-
-        await Promise.race([authPromise, timeoutPromise]);
-        console.log("Postgres connected. Database connections established");
-        isConnected = true;
+        await connectDB();
+        next();
     } catch (error) {
-        console.error("Database connection failed:", error);
-        throw error;
+        res.status(503).json({ error: "Database connection unavailable. Please retry." });
     }
 };
 
@@ -58,6 +83,7 @@ module.exports = { app, connectDB, syncDB };
 
 app.use(cors());
 app.use(express.json());
+app.use(ensureDBConnected);
 
 // Serve uploaded files
 const path = require("path");
