@@ -6,7 +6,7 @@ const AuthContext = createContext(null);
 const IDLE_MINUTES = Number(import.meta.env.VITE_IDLE_MINUTES || 15); // auto-logout after inactivity
 const LOGOUT_TRANSITION_ENTER_MS = 220;
 const LOGOUT_TRANSITION_EXIT_MS = 340;
-const LOGIN_TRANSITION_HOLD_MS = Number(import.meta.env.VITE_LOGIN_TRANSITION_HOLD_MS || 1050);
+const LOGIN_TRANSITION_HOLD_MS = Number(import.meta.env.VITE_LOGIN_TRANSITION_HOLD_MS || 1500);
 const LOGIN_TRANSITION_FADE_MS = Number(import.meta.env.VITE_LOGIN_TRANSITION_FADE_MS || 420);
 
 export function AuthProvider({ children }) {
