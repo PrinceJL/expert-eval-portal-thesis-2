@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { apiFetch } from '../lib/api';
+import { apiFetch, getApiBaseUrl } from '../lib/api';
 
 const AuthContext = createContext(null);
 
@@ -35,6 +35,23 @@ export function AuthProvider({ children }) {
 
     setToken(null);
     setUser(null);
+  }
+
+  function notifyServerLogout(currentUserId) {
+    if (!currentUserId) return;
+    const baseUrl = getApiBaseUrl();
+    const payload = {
+      userId: String(currentUserId),
+      deviceFingerprint: getDeviceFingerprint()
+    };
+
+    fetch(`${baseUrl}/auth/logout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).catch(() => {
+      // Best-effort only; local logout should still proceed.
+    });
   }
 
   function clearIdleTimer() {
@@ -117,6 +134,8 @@ export function AuthProvider({ children }) {
   };
 
   const logout = ({ withTransition = false } = {}) => {
+    notifyServerLogout(user?.id);
+
     if (!withTransition) {
       clearLogoutTransitionTimers();
       setLogoutTransitionPhase('idle');

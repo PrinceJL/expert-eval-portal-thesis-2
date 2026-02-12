@@ -6,6 +6,7 @@ const { Op } = require("sequelize");
 const { sql, mongo } = require("../models");
 
 const VALID_PRESENCE_STATUSES = new Set(["auto", "online", "idle", "dnd", "invisible"]);
+const ACTIVE_SESSION_WINDOW_MS = Number(process.env.ACTIVE_SESSION_WINDOW_MS || 15 * 60 * 1000);
 
 function normalizePresenceStatus(value) {
     const s = String(value || "").toLowerCase();
@@ -18,6 +19,12 @@ function makeRefreshToken() {
 
 function makeSessionId() {
     return crypto.randomBytes(24).toString("hex");
+}
+
+function isRecentlyActive(session) {
+    const ts = new Date(session?.lastActivity || session?.updatedAt || 0).getTime();
+    if (!Number.isFinite(ts) || ts <= 0) return false;
+    return (Date.now() - ts) <= ACTIVE_SESSION_WINDOW_MS;
 }
 
 async function login({ username, password, deviceFingerprint, req }) {
@@ -50,17 +57,29 @@ async function login({ username, password, deviceFingerprint, req }) {
             throw err;
         }
 
+        const normalizedDeviceFingerprint = String(deviceFingerprint || "").trim() || `anon-${makeSessionId().slice(0, 12)}`;
+
         let existingPresenceStatus = "auto";
         const existingSession = await mongo.SessionCache.findOne({ userId: String(user.id) })
             .sort({ updatedAt: -1 })
-            .select({ presenceStatus: 1 });
+            .select({ presenceStatus: 1, deviceFingerprint: 1, lastActivity: 1, updatedAt: 1 });
         existingPresenceStatus = normalizePresenceStatus(existingSession?.presenceStatus);
 
-        // Single active session per user: revoke previous sessions before issuing a new token.
+        // Strict single-session policy:
+        // deny login from another device while the current session is still active.
+        if (existingSession && isRecentlyActive(existingSession)) {
+            const sameDevice = String(existingSession.deviceFingerprint || "") === normalizedDeviceFingerprint;
+            if (!sameDevice) {
+                const err = new Error("This account is already active on another device. Please logout there first.");
+                err.statusCode = 409;
+                throw err;
+            }
+        }
+
+        // Re-issue session (same device relogin, or stale previous session).
         await mongo.SessionCache.deleteMany({ userId: String(user.id) });
 
         const sessionId = makeSessionId();
-        const normalizedDeviceFingerprint = String(deviceFingerprint || "").trim() || `anon-${makeSessionId().slice(0, 12)}`;
 
         const accessToken = jwt.sign(
             {
