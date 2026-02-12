@@ -12,6 +12,41 @@ function convoId(a, b) {
   return x < y ? `${x}-${y}` : `${y}-${x}`;
 }
 
+const ONLINE_WINDOW_MS = Number(process.env.ONLINE_WINDOW_MS || 2 * 60 * 1000);
+const IDLE_WINDOW_MS = Number(process.env.IDLE_WINDOW_MS || 10 * 60 * 1000);
+const VALID_PRESENCE_STATUSES = new Set(["auto", "online", "idle", "dnd", "invisible"]);
+
+function computePresence(lastActiveAt) {
+  if (!lastActiveAt) return { isOnline: false, presenceStatus: "offline" };
+
+  const ts = new Date(lastActiveAt).getTime();
+  if (!Number.isFinite(ts)) return { isOnline: false, presenceStatus: "offline" };
+
+  const deltaMs = Date.now() - ts;
+  if (deltaMs <= ONLINE_WINDOW_MS) {
+    return { isOnline: true, presenceStatus: "online" };
+  }
+  if (deltaMs <= IDLE_WINDOW_MS) {
+    return { isOnline: false, presenceStatus: "idle" };
+  }
+  return { isOnline: false, presenceStatus: "offline" };
+}
+
+function normalizePresenceStatus(value) {
+  const s = String(value || "").toLowerCase();
+  return VALID_PRESENCE_STATUSES.has(s) ? s : "auto";
+}
+
+function applyPresenceOverride(autoPresence, overrideStatus) {
+  const status = normalizePresenceStatus(overrideStatus);
+  if (status === "auto") return autoPresence;
+  if (status === "online") return { isOnline: true, presenceStatus: "online" };
+  if (status === "idle") return { isOnline: false, presenceStatus: "idle" };
+  if (status === "dnd") return { isOnline: true, presenceStatus: "dnd" };
+  if (status === "invisible") return { isOnline: false, presenceStatus: "invisible" };
+  return autoPresence;
+}
+
 // Multer Config
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -34,12 +69,10 @@ const upload = multer({
 async function getContacts(req, res) {
   try {
     const me = req.user;
-    const where = { isActive: true };
 
     // Customers (EXPERTS) should be able to see all ADMINS and RESEARCHERS
     // Admins should see everyone.
     const isExpert = me.role === "EXPERT";
-    const isAdmin = me.role === "ADMIN" || me.role === "RESEARCHER";
 
     let users;
     if (isExpert) {
@@ -52,19 +85,45 @@ async function getContacts(req, res) {
           ],
           isActive: true
         },
-        attributes: ["id", "username", "email", "role", "group"],
+        attributes: ["id", "username", "email", "role", "group", "lastActiveAt"],
         order: [["username", "ASC"]]
       });
     } else {
       // Admins see everyone
       users = await sql.User.findAll({
         where: { isActive: true },
-        attributes: ["id", "username", "email", "role", "group"],
+        attributes: ["id", "username", "email", "role", "group", "lastActiveAt"],
         order: [["username", "ASC"]]
       });
     }
 
-    const filtered = users.filter((u) => String(u.id) !== String(me.id));
+    const filteredUsers = users.filter((u) => String(u.id) !== String(me.id));
+    const userIds = filteredUsers.map((u) => String(u.id));
+
+    const presenceByUserId = new Map();
+    if (userIds.length) {
+      const sessions = await mongo.SessionCache.find(
+        { userId: { $in: userIds } },
+        { userId: 1, presenceStatus: 1, updatedAt: 1 }
+      ).sort({ updatedAt: -1 });
+
+      for (const s of sessions) {
+        const uid = String(s.userId || "");
+        if (!uid || presenceByUserId.has(uid)) continue;
+        presenceByUserId.set(uid, normalizePresenceStatus(s.presenceStatus));
+      }
+    }
+
+    const filtered = filteredUsers.map((u) => {
+      const data = u.toJSON ? u.toJSON() : u;
+      const autoPresence = computePresence(data.lastActiveAt);
+      const overrideStatus = presenceByUserId.get(String(data.id));
+      const presence = applyPresenceOverride(autoPresence, overrideStatus);
+      return {
+        ...data,
+        ...presence
+      };
+    });
     res.json(filtered);
   } catch (e) {
     console.error("getContacts error:", e);

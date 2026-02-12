@@ -5,6 +5,13 @@ const { Op } = require("sequelize");
 
 const { sql, mongo } = require("../models");
 
+const VALID_PRESENCE_STATUSES = new Set(["auto", "online", "idle", "dnd", "invisible"]);
+
+function normalizePresenceStatus(value) {
+    const s = String(value || "").toLowerCase();
+    return VALID_PRESENCE_STATUSES.has(s) ? s : "auto";
+}
+
 function makeRefreshToken() {
     return crypto.randomBytes(48).toString("hex");
 }
@@ -41,7 +48,12 @@ async function login({ username, password, deviceFingerprint, req }) {
 
         // Enforce “no 2 instances” if device fingerprint is provided.
         // (If you don’t have a frontend fingerprint yet, you can omit it for now.)
+        let existingPresenceStatus = "auto";
         if (deviceFingerprint) {
+            const existingSession = await mongo.SessionCache.findOne({ userId: String(user.id) })
+                .sort({ updatedAt: -1 })
+                .select({ presenceStatus: 1 });
+            existingPresenceStatus = normalizePresenceStatus(existingSession?.presenceStatus);
             await mongo.SessionCache.deleteMany({ userId: String(user.id) });
         }
 
@@ -67,6 +79,7 @@ async function login({ username, password, deviceFingerprint, req }) {
                 refreshToken,
                 expiresAt,
                 lastActivity: new Date(),
+                presenceStatus: existingPresenceStatus,
                 cachedMessages: []
             });
         }
@@ -93,7 +106,8 @@ async function login({ username, password, deviceFingerprint, req }) {
                 username: user.username,
                 role: user.role,
                 group: user.group,
-                email: user.email || null
+                email: user.email || null,
+                presenceStatus: existingPresenceStatus
             }
         };
     } catch (error) {

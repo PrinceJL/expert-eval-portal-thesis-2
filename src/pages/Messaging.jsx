@@ -45,6 +45,43 @@ function getRoleTheme(role) {
   }
 }
 
+function getPresenceTheme(rawStatus, isOnlineFlag) {
+  const status = String(rawStatus || '').toLowerCase() || (isOnlineFlag ? 'online' : 'offline');
+  switch (status) {
+    case 'online':
+      return {
+        status: 'online',
+        label: 'Online',
+        color: '#22c55e'
+      };
+    case 'idle':
+      return {
+        status: 'idle',
+        label: 'Idle',
+        color: '#f59e0b'
+      };
+    case 'dnd':
+      return {
+        status: 'dnd',
+        label: 'Do Not Disturb',
+        color: '#ef4444'
+      };
+    case 'invisible':
+      return {
+        status: 'invisible',
+        label: 'Invisible',
+        color: '#94a3b8'
+      };
+    case 'offline':
+    default:
+      return {
+        status: 'offline',
+        label: 'Offline',
+        color: '#94a3b8'
+      };
+  }
+}
+
 function toMediaUrl(url) {
   if (!url) return '';
   const raw = String(url);
@@ -85,6 +122,10 @@ export default function Messaging() {
   }, [selected, user.id]);
 
   const selectedRoleTheme = useMemo(() => getRoleTheme(selected?.role), [selected?.role]);
+  const selectedPresenceTheme = useMemo(
+    () => getPresenceTheme(selected?.presenceStatus, selected?.isOnline),
+    [selected?.presenceStatus, selected?.isOnline]
+  );
 
   async function loadContacts() {
     const data = await apiFetch('/messages/contacts');
@@ -117,6 +158,22 @@ export default function Messaging() {
     init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadContacts().catch(() => {
+        // Ignore polling errors to avoid noisy UI state flicker.
+      });
+    }, 10000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!selected) return;
+    const updated = contacts.find((c) => String(c.id) === String(selected.id));
+    if (updated && updated !== selected) setSelected(updated);
+  }, [contacts, selected]);
 
   // Near real-time polling (every 4 seconds)
   useEffect(() => {
@@ -291,6 +348,7 @@ export default function Messaging() {
             {contacts.map((c) => {
               const isActive = selected?.id === c.id;
               const roleTheme = getRoleTheme(c.role);
+              const presenceTheme = getPresenceTheme(c.presenceStatus, c.isOnline);
               return (
                 <button
                   key={c.id}
@@ -301,7 +359,7 @@ export default function Messaging() {
                     : 'bg-base-100/50 hover:bg-base-200 text-base-content border-white/30 hover:border-white/50'
                     }`}
                 >
-                  <div className="avatar">
+                  <div className="avatar relative">
                     <div
                       className="rounded-full w-10 h-10 flex items-center justify-center"
                       style={{
@@ -313,6 +371,17 @@ export default function Messaging() {
                         {String(c.username || 'U').slice(0, 2)}
                       </span>
                     </div>
+                    <span
+                      className="absolute w-2 h-2 rounded-full border shadow-sm"
+                      style={{
+                        bottom: 2,
+                        right: 2,
+                        background: presenceTheme.color,
+                        borderColor: isActive ? 'rgba(99, 102, 241, 0.9)' : 'rgba(255,255,255,0.9)'
+                      }}
+                      title={presenceTheme.label}
+                      aria-label={`${presenceTheme.label} status`}
+                    />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="font-semibold truncate">{c.username}</div>
@@ -335,6 +404,12 @@ export default function Messaging() {
                       </span>
                       <span className={isActive ? 'text-primary-content/85' : 'text-base-content/60'}>
                         {c.group}
+                      </span>
+                      <span
+                        className={isActive ? 'text-primary-content/85' : 'text-base-content/60'}
+                        title={presenceTheme.label}
+                      >
+                        {presenceTheme.label}
                       </span>
                     </div>
                   </div>
@@ -366,7 +441,7 @@ export default function Messaging() {
               {/* Chat Header */}
               <div className="p-4 border-b border-base-200 bg-base-100 flex items-center justify-between sticky top-0 z-10 shadow-sm">
                 <div className="flex items-center gap-3">
-                  <div className="avatar">
+                  <div className="avatar relative">
                     <div
                       className="rounded-full w-10 h-10 flex items-center justify-center"
                       style={{
@@ -376,6 +451,17 @@ export default function Messaging() {
                     >
                       <span className="text-sm font-semibold uppercase leading-none">{String(selected.username || 'U').slice(0, 2)}</span>
                     </div>
+                    <span
+                      className="absolute w-2 h-2 rounded-full border shadow-sm"
+                      style={{
+                        bottom: 2,
+                        right: 2,
+                        background: selectedPresenceTheme.color,
+                        borderColor: 'rgba(255,255,255,0.95)'
+                      }}
+                      title={selectedPresenceTheme.label}
+                      aria-label={`${selectedPresenceTheme.label} status`}
+                    />
                   </div>
                   <div>
                     <h3 className="font-bold text-lg leading-tight">{selected.username}</h3>
@@ -391,6 +477,9 @@ export default function Messaging() {
                         {selected.role}
                       </span>
                       <span className="truncate">{selected.email}</span>
+                      <span style={{ color: selectedPresenceTheme.color }}>
+                        {selectedPresenceTheme.label}
+                      </span>
                     </div>
                   </div>
                 </div>

@@ -9,6 +9,12 @@ const SessionCacheSchema = new mongoose.Schema({
     expiresAt: { type: Date, required: true },
 
     lastActivity: { type: Date, default: Date.now },
+    presenceStatus: {
+        type: String,
+        enum: ["auto", "online", "idle", "dnd", "invisible"],
+        default: "auto",
+        index: true
+    },
 
     // Cached data for quick dashboard load
     cachedMessages: [{

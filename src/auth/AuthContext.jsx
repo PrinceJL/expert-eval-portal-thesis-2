@@ -101,6 +101,21 @@ export function AuthProvider({ children }) {
     setUser(data.user);
   };
 
+  const setPresenceStatus = async (status) => {
+    if (!isAuthed) return;
+    const data = await apiFetch('/auth/presence', {
+      method: 'POST',
+      body: JSON.stringify({ status })
+    });
+    const nextStatus = data?.status || status;
+    setUser((prev) => {
+      if (!prev) return prev;
+      const nextUser = { ...prev, presenceStatus: nextStatus };
+      localStorage.setItem('user', JSON.stringify(nextUser));
+      return nextUser;
+    });
+  };
+
   const logout = ({ withTransition = false } = {}) => {
     if (!withTransition) {
       clearLogoutTransitionTimers();
@@ -125,7 +140,7 @@ export function AuthProvider({ children }) {
   };
 
   const value = useMemo(
-    () => ({ token, user, isAuthed, login, logout, logoutTransitionPhase }),
+    () => ({ token, user, isAuthed, login, logout, setPresenceStatus, logoutTransitionPhase }),
     [token, user, isAuthed, logoutTransitionPhase]
   );
 

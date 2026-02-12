@@ -39,7 +39,7 @@ function DesktopIcon() {
 }
 
 export default function Navbar() {
-  const { isAuthed, user, logout } = useAuth();
+  const { isAuthed, user, logout, setPresenceStatus } = useAuth();
   const THEME_SWITCH_MS = 280;
   const [themeMode, setThemeMode] = useState(() => {
     try {
@@ -50,7 +50,11 @@ export default function Navbar() {
   });
   const [resolvedTheme, setResolvedTheme] = useState("light");
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isPresenceMenuOpen, setIsPresenceMenuOpen] = useState(false);
+  const [presenceMenuSide, setPresenceMenuSide] = useState("right");
+  const [presenceSaving, setPresenceSaving] = useState(false);
   const profileRef = useRef(null);
+  const presenceTriggerRef = useRef(null);
   const hasThemeMountedRef = useRef(false);
   const themeSwitchTimerRef = useRef(null);
 
@@ -72,6 +76,54 @@ export default function Navbar() {
   const displayName = user?.username || "User";
   const displayEmail = user?.email || "No email on account";
   const avatarLetter = String(displayName).charAt(0).toUpperCase() || "U";
+  const currentPresenceRaw = String(user?.presenceStatus || "online").toLowerCase();
+  const currentPresence = ["online", "idle", "dnd", "invisible"].includes(currentPresenceRaw)
+    ? currentPresenceRaw
+    : "online";
+
+  const presenceOptions = [
+    { value: "online", label: "Online", color: "#22c55e" },
+    { value: "idle", label: "Idle", color: "#f59e0b" },
+    { value: "dnd", label: "Do Not Disturb", color: "#ef4444", description: "You will not receive desktop notifications" },
+    { value: "invisible", label: "Invisible", color: "#94a3b8", description: "You will appear offline" }
+  ];
+  const currentPresenceOption = presenceOptions.find((o) => o.value === currentPresence) || presenceOptions[0];
+
+  function getPresenceColor(mode) {
+    return presenceOptions.find((o) => o.value === mode)?.color || "#94a3b8";
+  }
+
+  async function handlePresenceChange(nextStatus) {
+    if (presenceSaving || currentPresence === nextStatus) return;
+    try {
+      setPresenceSaving(true);
+      await setPresenceStatus(nextStatus);
+      setIsPresenceMenuOpen(false);
+    } catch {
+      // Keep current status if update fails.
+    } finally {
+      setPresenceSaving(false);
+    }
+  }
+
+  function togglePresenceMenu() {
+    if (isPresenceMenuOpen) {
+      setIsPresenceMenuOpen(false);
+      return;
+    }
+
+    const triggerRect = presenceTriggerRef.current?.getBoundingClientRect();
+    const submenuWidth = 288;
+    if (triggerRect) {
+      const spaceRight = window.innerWidth - triggerRect.right;
+      const spaceLeft = triggerRect.left;
+      setPresenceMenuSide(spaceRight >= submenuWidth ? "right" : (spaceLeft >= submenuWidth ? "left" : "right"));
+    } else {
+      setPresenceMenuSide("right");
+    }
+
+    setIsPresenceMenuOpen(true);
+  }
 
   const links = [
     { to: "/dashboard", label: "Dashboard", show: true },
@@ -173,10 +225,14 @@ export default function Navbar() {
     const onPointerDown = (event) => {
       if (profileRef.current && !profileRef.current.contains(event.target)) {
         setIsProfileOpen(false);
+        setIsPresenceMenuOpen(false);
       }
     };
     const onKeyDown = (event) => {
-      if (event.key === "Escape") setIsProfileOpen(false);
+      if (event.key === "Escape") {
+        setIsProfileOpen(false);
+        setIsPresenceMenuOpen(false);
+      }
     };
 
     document.addEventListener("pointerdown", onPointerDown);
@@ -186,6 +242,10 @@ export default function Navbar() {
       document.removeEventListener("keydown", onKeyDown);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isProfileOpen) setIsPresenceMenuOpen(false);
+  }, [isProfileOpen]);
 
   useEffect(() => () => {
     if (themeSwitchTimerRef.current) {
@@ -252,16 +312,28 @@ export default function Navbar() {
               }}
             >
               <div
-                className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold"
+                className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold relative"
                 style={{ color: palette.avatarText }}
               >
                 {avatarLetter}
+                <span
+                  className="absolute rounded-full border shadow-sm"
+                  style={{
+                    bottom: 1,
+                    right: -1,
+                    width: 9,
+                    height: 9,
+                    background: getPresenceColor(currentPresence),
+                    borderColor: palette.avatarBg
+                  }}
+                  title={currentPresenceOption.label || "Presence"}
+                />
               </div>
             </button>
 
             {isProfileOpen ? (
               <div
-                className="w-72 rounded-2xl overflow-hidden"
+                className="w-72 rounded-2xl"
                 style={{
                   position: "absolute",
                   right: 0,
@@ -273,9 +345,127 @@ export default function Navbar() {
                   color: palette.panelText
                 }}
               >
-                <div className="px-4 py-3" style={{ borderBottom: `1px solid ${palette.panelDivider}` }}>
+                <div className="px-4 pt-3 pb-2">
                   <div className="font-semibold leading-tight truncate" style={{ fontSize: 20 }}>{displayName}</div>
                   <div className="text-sm truncate" style={{ color: palette.subText, marginTop: 4 }}>{displayEmail}</div>
+                </div>
+
+                <div className="px-4 py-3 relative" style={{ borderBottom: `1px solid ${palette.panelDivider}` }}>
+                  <button
+                    ref={presenceTriggerRef}
+                    type="button"
+                    className="focus:outline-none focus-visible:outline-none"
+                    disabled={presenceSaving}
+                    onClick={togglePresenceMenu}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 10,
+                      width: "100%",
+                      border: "none",
+                      borderRadius: 10,
+                      padding: "8px 10px",
+                      textAlign: "left",
+                      fontSize: 14,
+                      color: palette.menuText,
+                      background: isDark ? "rgba(255,255,255,0.06)" : "#eef2f9",
+                      cursor: presenceSaving ? "wait" : "pointer",
+                      outline: "none",
+                      boxShadow: "none"
+                    }}
+                  >
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+                      <span
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: 999,
+                          background: currentPresenceOption.color
+                        }}
+                      />
+                      <span style={{ fontWeight: 600 }}>{currentPresenceOption.label}</span>
+                    </span>
+                    <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                      <path d="M7 4l6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+
+                  {isPresenceMenuOpen ? (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: presenceMenuSide === "right" ? "calc(100% + 8px)" : "auto",
+                        right: presenceMenuSide === "left" ? "calc(100% + 8px)" : "auto",
+                        width: 280,
+                        zIndex: 60,
+                        background: palette.panelBg,
+                        border: `1px solid ${palette.panelBorder}`,
+                        borderRadius: 12,
+                        boxShadow: isDark ? "0 16px 34px rgba(0,0,0,0.45)" : "0 12px 30px rgba(15,23,42,0.18)",
+                        overflow: "hidden",
+                        padding: "6px 0"
+                      }}
+                    >
+                      {presenceOptions.map((opt) => {
+                        const active = currentPresence === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            className="focus:outline-none focus-visible:outline-none"
+                            disabled={presenceSaving}
+                            onClick={() => handlePresenceChange(opt.value)}
+                            style={{
+                              width: "calc(100% - 12px)",
+                              margin: "2px 6px",
+                              border: "none",
+                              textAlign: "left",
+                              padding: "10px 12px",
+                              borderRadius: 10,
+                              background: active ? (isDark ? "rgba(255,255,255,0.1)" : "#eef2f9") : "transparent",
+                              color: palette.menuText,
+                              cursor: presenceSaving ? "wait" : "pointer",
+                              outline: "none",
+                              boxShadow: "none"
+                            }}
+                          >
+                            <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                              <span style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                                <span
+                                  style={{
+                                    width: 8,
+                                    height: 8,
+                                    marginTop: 6,
+                                    borderRadius: 999,
+                                    background: opt.color
+                                  }}
+                                />
+                                <span>
+                                  <span style={{ display: "block", fontWeight: active ? 700 : 600, lineHeight: 1.2 }}>
+                                    {opt.label}
+                                  </span>
+                                  {opt.description ? (
+                                    <span style={{ display: "block", marginTop: 3, fontSize: 12, color: palette.subText }}>
+                                      {opt.description}
+                                    </span>
+                                  ) : null}
+                                </span>
+                              </span>
+                              {opt.value !== "invisible" ? (
+                                <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true" style={{ opacity: 0.7 }}>
+                                  <path d="M7 4l6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              ) : (
+                                <span style={{ width: 14, height: 14 }} />
+                              )}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="px-4 py-3" style={{ borderBottom: `1px solid ${palette.panelDivider}` }}>

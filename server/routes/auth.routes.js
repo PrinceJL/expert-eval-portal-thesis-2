@@ -1,6 +1,7 @@
 const express = require("express");
 
 const authController = require("../controllers/auth.controller");
+const authenticate = require("../middleware/auth.middleware");
 
 const router = express.Router();
 
@@ -22,5 +23,11 @@ router.post("/logout", authController.logout);
  * Header: Authorization: Bearer <token>
  */
 router.get("/me", authController.me);
+
+/**
+ * POST /auth/presence
+ * Body: { status: "auto"|"online"|"idle"|"dnd"|"invisible" }
+ */
+router.post("/presence", authenticate, authController.setPresence);
 
 module.exports = router;
