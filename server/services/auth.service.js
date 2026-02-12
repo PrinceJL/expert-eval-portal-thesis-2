@@ -16,6 +16,10 @@ function makeRefreshToken() {
     return crypto.randomBytes(48).toString("hex");
 }
 
+function makeSessionId() {
+    return crypto.randomBytes(24).toString("hex");
+}
+
 async function login({ username, password, deviceFingerprint, req }) {
     try {
         if (!username || !password) {
@@ -46,16 +50,17 @@ async function login({ username, password, deviceFingerprint, req }) {
             throw err;
         }
 
-        // Enforce “no 2 instances” if device fingerprint is provided.
-        // (If you don’t have a frontend fingerprint yet, you can omit it for now.)
         let existingPresenceStatus = "auto";
-        if (deviceFingerprint) {
-            const existingSession = await mongo.SessionCache.findOne({ userId: String(user.id) })
-                .sort({ updatedAt: -1 })
-                .select({ presenceStatus: 1 });
-            existingPresenceStatus = normalizePresenceStatus(existingSession?.presenceStatus);
-            await mongo.SessionCache.deleteMany({ userId: String(user.id) });
-        }
+        const existingSession = await mongo.SessionCache.findOne({ userId: String(user.id) })
+            .sort({ updatedAt: -1 })
+            .select({ presenceStatus: 1 });
+        existingPresenceStatus = normalizePresenceStatus(existingSession?.presenceStatus);
+
+        // Single active session per user: revoke previous sessions before issuing a new token.
+        await mongo.SessionCache.deleteMany({ userId: String(user.id) });
+
+        const sessionId = makeSessionId();
+        const normalizedDeviceFingerprint = String(deviceFingerprint || "").trim() || `anon-${makeSessionId().slice(0, 12)}`;
 
         const accessToken = jwt.sign(
             {
@@ -63,26 +68,25 @@ async function login({ username, password, deviceFingerprint, req }) {
                 role: user.role,
                 username: user.username,
                 group: user.group,
-                email: user.email || null
+                email: user.email || null,
+                sid: sessionId
             },
             process.env.JWT_SECRET || "default_secret_key",
             { expiresIn: "15m" }
         );
 
-        // Optional session cache record (Mongo) to support resume/session restore.
-        if (deviceFingerprint) {
-            const refreshToken = makeRefreshToken();
-            const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-            await mongo.SessionCache.create({
-                userId: String(user.id),
-                deviceFingerprint,
-                refreshToken,
-                expiresAt,
-                lastActivity: new Date(),
-                presenceStatus: existingPresenceStatus,
-                cachedMessages: []
-            });
-        }
+        const refreshToken = makeRefreshToken();
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        await mongo.SessionCache.create({
+            userId: String(user.id),
+            sessionId,
+            deviceFingerprint: normalizedDeviceFingerprint,
+            refreshToken,
+            expiresAt,
+            lastActivity: new Date(),
+            presenceStatus: existingPresenceStatus,
+            cachedMessages: []
+        });
 
         user.lastLogin = new Date();
         await user.save();

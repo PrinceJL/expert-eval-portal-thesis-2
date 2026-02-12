@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const SessionCacheSchema = new mongoose.Schema({
     userId: { type: String, required: true, index: true },
+    sessionId: { type: String, required: true, index: true },
     deviceFingerprint: { type: String, required: true },
     refreshToken: { type: String, required: true, select: false },
 

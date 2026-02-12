@@ -53,7 +53,7 @@ function EyeOffIcon() {
 }
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, isAuthed } = useAuth();
   const nav = useNavigate();
   const loginLogo = '/images/logo-login.png';
   const LOGIN_SPLASH_MS = 1700;
@@ -71,6 +71,12 @@ export default function Login() {
       window.clearTimeout(redirectTimerRef.current);
     }
   }, []);
+
+  useEffect(() => {
+    if (isAuthed) {
+      nav('/dashboard', { replace: true });
+    }
+  }, [isAuthed, nav]);
 
   useEffect(() => {
     if (!error) return undefined;

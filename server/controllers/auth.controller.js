@@ -1,11 +1,34 @@
 const authService = require("../services/auth.service");
 const authenticate = require("../middleware/auth.middleware");
 const { mongo } = require("../models");
+const jwt = require("jsonwebtoken");
 
 const VALID_PRESENCE_STATUSES = new Set(["auto", "online", "idle", "dnd", "invisible"]);
 
 async function login(req, res) {
     try {
+        const authHeader = req.headers?.authorization || "";
+        const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+        if (token) {
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_SECRET || "default_secret_key");
+                const userId = String(decoded?.id || "");
+                const sessionId = String(decoded?.sid || "");
+                if (userId && sessionId) {
+                    const active = await mongo.SessionCache.exists({
+                        userId,
+                        sessionId,
+                        expiresAt: { $gt: new Date() }
+                    });
+                    if (active) {
+                        return res.status(409).json({ error: "Already logged in. Please logout first." });
+                    }
+                }
+            } catch {
+                // Ignore invalid/expired token and continue normal login.
+            }
+        }
+
         const { username, password, deviceFingerprint } = req.body;
         const result = await authService.login({ username, password, deviceFingerprint, req });
         return res.json(result);
