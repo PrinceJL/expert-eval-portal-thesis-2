@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const { Op } = require("sequelize");
 
 const { sql, mongo } = require("../models");
 
@@ -18,8 +19,11 @@ async function login({ username, password, deviceFingerprint, req }) {
 
         const user = await sql.User.findOne({
             where: {
-                username,
-                isActive: true
+                isActive: true,
+                [Op.or]: [
+                    { username },
+                    { email: username }
+                ]
             }
         });
         if (!user) {
@@ -46,7 +50,8 @@ async function login({ username, password, deviceFingerprint, req }) {
                 id: String(user.id),
                 role: user.role,
                 username: user.username,
-                group: user.group
+                group: user.group,
+                email: user.email || null
             },
             process.env.JWT_SECRET || "default_secret_key",
             { expiresIn: "15m" }
@@ -87,7 +92,8 @@ async function login({ username, password, deviceFingerprint, req }) {
                 id: String(user.id),
                 username: user.username,
                 role: user.role,
-                group: user.group
+                group: user.group,
+                email: user.email || null
             }
         };
     } catch (error) {

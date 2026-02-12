@@ -1,23 +1,38 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 
 export default function Login() {
   const { login } = useAuth();
   const nav = useNavigate();
+  const loginLogo = '/images/logo-login.png';
 
-  const [username, setUsername] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
-  const [group, setGroup] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (!error) return undefined;
+    const timer = window.setTimeout(() => {
+      setError('');
+    }, 15000);
+    return () => window.clearTimeout(timer);
+  }, [error]);
+
   const onSubmit = async (e) => {
     e.preventDefault();
+
+    if (!identifier.trim() || !password) {
+      setError('Please enter your username/email and password.');
+      return;
+    }
+
     setError('');
     setLoading(true);
     try {
-      await login({ username, password, group });
+      await login({ username: identifier.trim(), password });
       nav('/dashboard', { replace: true });
     } catch (err) {
       setError(err?.message || 'Login failed');
@@ -27,41 +42,94 @@ export default function Login() {
   };
 
   return (
-    <div className="container" style={{ display: 'grid', placeItems: 'center', minHeight: 'calc(100vh - 40px)' }}>
-      <div className="card" style={{ width: '100%', maxWidth: 420 }}>
-        <h1 style={{ marginTop: 0, marginBottom: 6 }}>Expert Portal Login</h1>
-        <div className="muted" style={{ marginBottom: 12 }}>
-          Enter your credentials.
+    <div
+      className="login-page"
+      style={{
+        minHeight: '100svh',
+        padding: '24px 16px',
+        display: 'grid',
+        placeItems: 'center',
+        background: 'linear-gradient(180deg, #99d3ff 0%, #ccecff 42%, #e8f6ff 72%, #f7fbff 100%)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}
+    >
+      <div className="login-bg-motion" aria-hidden="true" />
+
+      <div className="login-card-shell">
+        <div className="login-logo-behind">
+          <div
+            className="login-logo-animated"
+            role="img"
+            aria-label="Login logo"
+            style={{ '--login-logo-url': `url("${loginLogo}")` }}
+          />
+          <img
+            src={loginLogo}
+            alt="Login logo"
+            className="login-logo-fallback"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
         </div>
 
-        {error ? <div className="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
-
-        <form onSubmit={onSubmit} style={{ display: 'grid', gap: 10 }}>
-          <input
-            className="input"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoComplete="username"
-          />
-
-          <input
-            className="input"
-            placeholder="Password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-          />
-
-          <button className="btn btn-primary" disabled={loading}>
-            {loading ? 'Signing in…' : 'Login'}
-          </button>
-
-          <div className="muted" style={{ fontSize: 13 }}>
-            Tip: If you don't have a user yet, run the backend seed script.
+        <div
+          className="card login-card"
+        >
+          <h2
+            className="login-title"
+            style={{ margin: 0, textAlign: 'center', color: '#1f2937', fontWeight: 700 }}
+          >
+            Welcome back
+          </h2>
+          <div className="login-subtitle" style={{ marginTop: 6, textAlign: 'center', color: '#6b7280' }}>
+            Sign in with your assigned portal account.
           </div>
-        </form>
+
+          {error ? <div className="login-error" style={{ marginTop: 14 }}>{error}</div> : null}
+
+          <form onSubmit={onSubmit} className="login-form" style={{ display: 'grid', gap: 12, marginTop: 16 }}>
+            <input
+              className="input login-input"
+              placeholder="Email address or username"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              autoComplete="username"
+              autoFocus
+            />
+
+            <div className="login-password-wrap">
+              <input
+                className="input login-input"
+                placeholder="Password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                style={{
+                  paddingRight: 78
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="login-show-password"
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
+
+            <button
+              className="btn btn-primary login-submit"
+              type="submit"
+              disabled={loading}
+            >
+              {loading ? 'Signing in...' : 'Get Started'}
+            </button>
+          </form>
+
+        </div>
       </div>
     </div>
   );
