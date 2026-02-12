@@ -4,6 +4,8 @@ import { apiFetch } from '../lib/api';
 const AuthContext = createContext(null);
 
 const IDLE_MINUTES = Number(import.meta.env.VITE_IDLE_MINUTES || 15); // auto-logout after inactivity
+const LOGOUT_TRANSITION_ENTER_MS = 220;
+const LOGOUT_TRANSITION_EXIT_MS = 340;
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem('accessToken'));
@@ -11,12 +13,29 @@ export function AuthProvider({ children }) {
     const raw = localStorage.getItem('user');
     return raw ? JSON.parse(raw) : null;
   });
+  const [logoutTransitionPhase, setLogoutTransitionPhase] = useState('idle');
 
   const isAuthed = !!token && !!user;
 
   // === Inactivity logout ===
   const idleTimer = useRef(null);
   const lastActivity = useRef(Date.now());
+  const logoutTransitionTimers = useRef([]);
+
+  function clearLogoutTransitionTimers() {
+    for (const timerId of logoutTransitionTimers.current) {
+      window.clearTimeout(timerId);
+    }
+    logoutTransitionTimers.current = [];
+  }
+
+  function clearAuthState() {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('user');
+
+    setToken(null);
+    setUser(null);
+  }
 
   function clearIdleTimer() {
     if (idleTimer.current) {
@@ -24,6 +43,8 @@ export function AuthProvider({ children }) {
       idleTimer.current = null;
     }
   }
+
+  useEffect(() => () => clearLogoutTransitionTimers(), []);
 
   function scheduleIdleLogout() {
     clearIdleTimer();
@@ -80,15 +101,33 @@ export function AuthProvider({ children }) {
     setUser(data.user);
   };
 
-  const logout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('user');
+  const logout = ({ withTransition = false } = {}) => {
+    if (!withTransition) {
+      clearLogoutTransitionTimers();
+      setLogoutTransitionPhase('idle');
+      clearAuthState();
+      return;
+    }
 
-    setToken(null);
-    setUser(null);
+    clearLogoutTransitionTimers();
+    setLogoutTransitionPhase('in');
+
+    const transitionToLoginTimer = window.setTimeout(() => {
+      clearAuthState();
+      setLogoutTransitionPhase('out');
+    }, LOGOUT_TRANSITION_ENTER_MS);
+
+    const finishTransitionTimer = window.setTimeout(() => {
+      setLogoutTransitionPhase('idle');
+    }, LOGOUT_TRANSITION_ENTER_MS + LOGOUT_TRANSITION_EXIT_MS);
+
+    logoutTransitionTimers.current.push(transitionToLoginTimer, finishTransitionTimer);
   };
 
-  const value = useMemo(() => ({ token, user, isAuthed, login, logout }), [token, user, isAuthed]);
+  const value = useMemo(
+    () => ({ token, user, isAuthed, login, logout, logoutTransitionPhase }),
+    [token, user, isAuthed, logoutTransitionPhase]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

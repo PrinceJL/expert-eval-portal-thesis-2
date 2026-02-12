@@ -336,7 +336,7 @@ export default function Navbar() {
                     type="button"
                     onClick={() => {
                       setIsProfileOpen(false);
-                      logout();
+                      logout({ withTransition: true });
                     }}
                     style={{
                       color: palette.menuText,

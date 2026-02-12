@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 
 import Navbar from './components/Navbar';
 import ProtectedRoute from './auth/ProtectedRoute';
+import { useAuth } from './auth/AuthContext';
 
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -19,8 +20,18 @@ import Maintenance from './pages/Maintenance';
 import NotFound from './pages/NotFound';
 
 export default function App() {
+  const { logoutTransitionPhase } = useAuth();
+  const showLogoutTransition = logoutTransitionPhase !== 'idle';
+
   return (
     <>
+      {showLogoutTransition ? (
+        <div
+          className={`logout-post-splash logout-post-splash-${logoutTransitionPhase}`}
+          role="status"
+          aria-label="Signing out"
+        />
+      ) : null}
       <Navbar />
       <Routes>
         <Route path="/login" element={<Login />} />
