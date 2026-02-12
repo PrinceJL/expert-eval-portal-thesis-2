@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 
 import Navbar from './components/Navbar';
 import ProtectedRoute from './auth/ProtectedRoute';
@@ -22,6 +22,9 @@ import NotFound from './pages/NotFound';
 export default function App() {
   const { logoutTransitionPhase } = useAuth();
   const showLogoutTransition = logoutTransitionPhase !== 'idle';
+  const location = useLocation();
+  const isLoginRoute = location.pathname === '/login';
+  const routeTransitionKey = `${location.pathname}${location.search}`;
 
   return (
     <>
@@ -32,95 +35,97 @@ export default function App() {
           aria-label="Signing out"
         />
       ) : null}
-      <Navbar />
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/maintenance" element={<Maintenance />} />
+      {!isLoginRoute ? <Navbar /> : null}
+      <div key={routeTransitionKey} className="app-route-stage">
+        <Routes location={location}>
+          <Route path="/login" element={<Login />} />
+          <Route path="/maintenance" element={<Maintenance />} />
 
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute allowRoles={['EXPERT', 'ADMIN', 'RESEARCHER']}>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute allowRoles={['EXPERT', 'ADMIN', 'RESEARCHER']}>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/evaluation"
-          element={
-            <ProtectedRoute allowRoles={['EXPERT', 'ADMIN', 'RESEARCHER']}>
-              <EvaluationList />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/evaluation"
+            element={
+              <ProtectedRoute allowRoles={['EXPERT', 'ADMIN', 'RESEARCHER']}>
+                <EvaluationList />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/evaluation/:id"
-          element={
-            <ProtectedRoute allowRoles={['EXPERT', 'ADMIN', 'RESEARCHER']}>
-              <EvaluationPage />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/evaluation/:id"
+            element={
+              <ProtectedRoute allowRoles={['EXPERT', 'ADMIN', 'RESEARCHER']}>
+                <EvaluationPage />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/messaging"
-          element={
-            <ProtectedRoute allowRoles={['EXPERT', 'ADMIN', 'RESEARCHER']}>
-              <Messaging />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/messaging"
+            element={
+              <ProtectedRoute allowRoles={['EXPERT', 'ADMIN', 'RESEARCHER']}>
+                <Messaging />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/contact"
-          element={
-            <ProtectedRoute allowRoles={['EXPERT', 'ADMIN', 'RESEARCHER']}>
-              <Contact />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/contact"
+            element={
+              <ProtectedRoute allowRoles={['EXPERT', 'ADMIN', 'RESEARCHER']}>
+                <Contact />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/admin/evaluations"
-          element={
-            <ProtectedRoute allowRoles={['ADMIN', 'RESEARCHER']}>
-              <AdminEvaluations />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/admin/evaluations"
+            element={
+              <ProtectedRoute allowRoles={['ADMIN', 'RESEARCHER']}>
+                <AdminEvaluations />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/admin/users"
-          element={
-            <ProtectedRoute allowRoles={['ADMIN', 'RESEARCHER']}>
-              <AdminUsers />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/admin/users"
+            element={
+              <ProtectedRoute allowRoles={['ADMIN', 'RESEARCHER']}>
+                <AdminUsers />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/admin/maintenance"
-          element={
-            <ProtectedRoute allowRoles={['ADMIN', 'RESEARCHER']}>
-              <AdminMaintenance />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/admin/maintenance"
+            element={
+              <ProtectedRoute allowRoles={['ADMIN', 'RESEARCHER']}>
+                <AdminMaintenance />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/admin/contact"
-          element={
-            <ProtectedRoute allowRoles={['ADMIN', 'RESEARCHER']}>
-              <AdminContact />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/admin/contact"
+            element={
+              <ProtectedRoute allowRoles={['ADMIN', 'RESEARCHER']}>
+                <AdminContact />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </div>
     </>
   );
 }

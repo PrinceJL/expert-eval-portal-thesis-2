@@ -28,6 +28,11 @@ body {
   min-height: 100vh;
 }
 
+.app-route-stage {
+  animation: app-route-enter 165ms cubic-bezier(0.2, 0.72, 0.2, 1);
+  will-change: opacity, transform;
+}
+
 :root.theme-switching,
 :root.theme-switching * {
   transition:
@@ -228,9 +233,31 @@ button:focus-visible {
 
 .login-input {
   min-height: 46px;
-  border-color: #c4d8ed;
-  background: #ffffff;
+  border: 1px solid rgba(148, 163, 184, 0.38) !important;
+  border-radius: 10px !important;
+  background: rgba(255, 255, 255, 0.95);
   color: #0f172a;
+  padding-left: 14px !important;
+  padding-right: 14px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.login-input::placeholder {
+  color: rgba(100, 116, 139, 0.78);
+}
+
+.login-input:hover {
+  border-color: rgba(100, 116, 139, 0.52) !important;
+}
+
+.login-input:focus,
+.login-input:focus-visible {
+  outline: none;
+  border-color: rgba(59, 130, 246, 0.44) !important;
+  box-shadow:
+    0 0 0 2px rgba(147, 197, 253, 0.22),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.75);
 }
 
 .login-password-wrap {
@@ -239,16 +266,36 @@ button:focus-visible {
 
 .login-show-password {
   position: absolute;
-  top: 0;
-  right: 0;
-  height: 100%;
-  border: none;
-  background: transparent;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  display: grid;
+  place-items: center;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
   color: #2563eb;
-  padding: 0 12px;
-  font-size: 13px;
+  padding: 0 !important;
+  font-size: 0;
   font-weight: 600;
+  line-height: 0;
+  box-shadow: none !important;
   cursor: pointer;
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
+}
+
+.login-show-password:hover {
+  color: #1d4ed8;
+}
+
+.login-show-password:focus,
+.login-show-password:focus-visible {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .login-submit {
@@ -461,6 +508,15 @@ button:focus-visible {
   }
 }
 
+@keyframes app-route-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .login-logo-fallback {
   display: none;
   height: clamp(62px, 13vw, 94px);
@@ -549,7 +605,8 @@ button:focus-visible {
   .login-bg-motion::after,
   .login-post-splash,
   .login-post-splash-logo,
-  .logout-post-splash {
+  .logout-post-splash,
+  .app-route-stage {
     animation: none;
   }
 
