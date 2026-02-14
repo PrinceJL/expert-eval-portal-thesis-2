@@ -1,6 +1,6 @@
 const authService = require("../services/auth.service");
 const authenticate = require("../middleware/auth.middleware");
-const { mongo } = require("../models");
+const { mongo, sql } = require("../models");
 const jwt = require("jsonwebtoken");
 
 const VALID_PRESENCE_STATUSES = new Set(["auto", "online", "idle", "dnd", "invisible"]);
@@ -72,9 +72,24 @@ async function setPresence(req, res) {
             ? "auto"
             : requestedStatus;
 
+        const sessionId = String(req?.user?.sid || "");
+        const sessionWhere = {
+            userId,
+            expiresAt: { $gt: new Date() }
+        };
+        if (sessionId) {
+            sessionWhere.sessionId = sessionId;
+        }
+
+        const now = new Date();
         await mongo.SessionCache.updateMany(
-            { userId },
-            { $set: { presenceStatus: nextStatus, lastActivity: new Date() } }
+            sessionWhere,
+            { $set: { presenceStatus: nextStatus, lastActivity: now } }
+        );
+
+        await sql.User.update(
+            { lastActiveAt: now },
+            { where: { id: userId }, silent: true }
         );
 
         return res.json({ status: nextStatus });
@@ -83,4 +98,44 @@ async function setPresence(req, res) {
     }
 }
 
-module.exports = { login, logout, me, setPresence };
+async function heartbeat(req, res) {
+    try {
+        const userId = String(req?.user?.id || "");
+        const sessionId = String(req?.user?.sid || "");
+        if (!userId || !sessionId) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const now = new Date();
+        const touched = await mongo.SessionCache.findOneAndUpdate(
+            {
+                userId,
+                sessionId,
+                expiresAt: { $gt: now }
+            },
+            { $set: { lastActivity: now } },
+            {
+                new: false,
+                projection: { _id: 1, presenceStatus: 1 }
+            }
+        );
+
+        if (!touched) {
+            return res.status(401).json({ error: "Session expired or replaced by another login." });
+        }
+
+        await sql.User.update(
+            { lastActiveAt: now },
+            { where: { id: userId }, silent: true }
+        );
+
+        return res.json({
+            ok: true,
+            serverTime: now.toISOString()
+        });
+    } catch (e) {
+        return res.status(500).json({ error: e.message || "Failed to update heartbeat" });
+    }
+}
+
+module.exports = { login, logout, me, setPresence, heartbeat };

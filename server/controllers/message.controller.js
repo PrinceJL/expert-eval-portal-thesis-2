@@ -60,10 +60,10 @@ const IDLE_DURATION_MS = Number(process.env.IDLE_DURATION_MS || 5 * 60 * 1000);
 const OFFLINE_WINDOW_MS = Number(process.env.OFFLINE_WINDOW_MS || ONLINE_WINDOW_MS + IDLE_DURATION_MS);
 const VALID_PRESENCE_STATUSES = new Set(["auto", "online", "idle", "dnd", "invisible"]);
 
-function computePresence(lastActiveAt) {
-  if (!lastActiveAt) return { isOnline: false, presenceStatus: "offline" };
+function computePresence(lastSeenAt) {
+  if (!lastSeenAt) return { isOnline: false, presenceStatus: "offline" };
 
-  const ts = new Date(lastActiveAt).getTime();
+  const ts = new Date(lastSeenAt).getTime();
   if (!Number.isFinite(ts)) return { isOnline: false, presenceStatus: "offline" };
 
   const deltaMs = Date.now() - ts;
@@ -147,21 +147,24 @@ async function getContacts(req, res) {
     if (userIds.length) {
       const sessions = await mongo.SessionCache.find(
         { userId: { $in: userIds } },
-        { userId: 1, presenceStatus: 1, updatedAt: 1 }
+        { userId: 1, presenceStatus: 1, lastActivity: 1, updatedAt: 1 }
       ).sort({ updatedAt: -1 });
 
       for (const s of sessions) {
         const uid = String(s.userId || "");
         if (!uid || presenceByUserId.has(uid)) continue;
-        presenceByUserId.set(uid, normalizePresenceStatus(s.presenceStatus));
+        presenceByUserId.set(uid, {
+          manualStatus: normalizePresenceStatus(s.presenceStatus),
+          lastActivity: s.lastActivity || s.updatedAt
+        });
       }
     }
 
     const filtered = filteredUsers.map((u) => {
       const data = u.toJSON ? u.toJSON() : u;
-      const autoPresence = computePresence(data.lastActiveAt);
-      const overrideStatus = presenceByUserId.get(String(data.id));
-      const presence = applyPresenceOverride(autoPresence, overrideStatus);
+      const sessionPresence = presenceByUserId.get(String(data.id));
+      const autoPresence = computePresence(sessionPresence?.lastActivity || data.lastActiveAt);
+      const presence = applyPresenceOverride(autoPresence, sessionPresence?.manualStatus);
       return {
         ...data,
         ...presence

@@ -8,6 +8,9 @@ const LOGOUT_TRANSITION_ENTER_MS = 220;
 const LOGOUT_TRANSITION_EXIT_MS = 340;
 const LOGIN_TRANSITION_HOLD_MS = Number(import.meta.env.VITE_LOGIN_TRANSITION_HOLD_MS || 1500);
 const LOGIN_TRANSITION_FADE_MS = Number(import.meta.env.VITE_LOGIN_TRANSITION_FADE_MS || 420);
+const PRESENCE_HEARTBEAT_MS = Number(import.meta.env.VITE_PRESENCE_HEARTBEAT_MS || 45 * 1000);
+const PRESENCE_IDLE_MS = Number(import.meta.env.VITE_PRESENCE_IDLE_MS || 5 * 60 * 1000);
+const PRESENCE_ACTIVITY_THROTTLE_MS = Number(import.meta.env.VITE_PRESENCE_ACTIVITY_THROTTLE_MS || 12 * 1000);
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem('accessToken'));
@@ -25,6 +28,9 @@ export function AuthProvider({ children }) {
   const lastActivity = useRef(Date.now());
   const logoutTransitionTimers = useRef([]);
   const loginTransitionTimers = useRef([]);
+  const presenceHeartbeatTimer = useRef(null);
+  const lastPresenceActivityAt = useRef(Date.now());
+  const lastHeartbeatSentAt = useRef(0);
 
   function clearLogoutTransitionTimers() {
     for (const timerId of logoutTransitionTimers.current) {
@@ -40,7 +46,15 @@ export function AuthProvider({ children }) {
     loginTransitionTimers.current = [];
   }
 
+  function clearPresenceHeartbeatTimer() {
+    if (presenceHeartbeatTimer.current) {
+      window.clearInterval(presenceHeartbeatTimer.current);
+      presenceHeartbeatTimer.current = null;
+    }
+  }
+
   function clearAuthState() {
+    clearPresenceHeartbeatTimer();
     localStorage.removeItem('accessToken');
     localStorage.removeItem('user');
 
@@ -75,7 +89,29 @@ export function AuthProvider({ children }) {
   useEffect(() => () => {
     clearLogoutTransitionTimers();
     clearLoginTransitionTimers();
+    clearPresenceHeartbeatTimer();
   }, []);
+
+  async function sendPresenceHeartbeat({ force = false } = {}) {
+    if (!isAuthed) return;
+
+    const now = Date.now();
+    if (!force) {
+      if (document.hidden) return;
+      if ((now - lastPresenceActivityAt.current) >= PRESENCE_IDLE_MS) return;
+      if ((now - lastHeartbeatSentAt.current) < PRESENCE_ACTIVITY_THROTTLE_MS) return;
+    }
+
+    try {
+      await apiFetch('/auth/heartbeat', {
+        method: 'POST',
+        body: JSON.stringify({})
+      });
+      lastHeartbeatSentAt.current = now;
+    } catch {
+      // Ignore transient heartbeat failures.
+    }
+  }
 
   function scheduleIdleLogout() {
     clearIdleTimer();
@@ -90,8 +126,11 @@ export function AuthProvider({ children }) {
   }
 
   function markActivity() {
-    lastActivity.current = Date.now();
+    const now = Date.now();
+    lastActivity.current = now;
+    lastPresenceActivityAt.current = now;
     scheduleIdleLogout();
+    void sendPresenceHeartbeat();
   }
 
   useEffect(() => {
@@ -112,6 +151,36 @@ export function AuthProvider({ children }) {
       window.removeEventListener('auth:logout', handleLogoutTrace);
       for (const ev of events) window.removeEventListener(ev, markActivity);
       clearIdleTimer();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthed]);
+
+  useEffect(() => {
+    if (!isAuthed) {
+      clearPresenceHeartbeatTimer();
+      return undefined;
+    }
+
+    lastPresenceActivityAt.current = Date.now();
+    void sendPresenceHeartbeat({ force: true });
+
+    const onVisibilityOrFocus = () => {
+      if (document.hidden) return;
+      lastPresenceActivityAt.current = Date.now();
+      void sendPresenceHeartbeat({ force: true });
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityOrFocus);
+    window.addEventListener('focus', onVisibilityOrFocus);
+
+    presenceHeartbeatTimer.current = window.setInterval(() => {
+      void sendPresenceHeartbeat();
+    }, PRESENCE_HEARTBEAT_MS);
+
+    return () => {
+      clearPresenceHeartbeatTimer();
+      document.removeEventListener('visibilitychange', onVisibilityOrFocus);
+      window.removeEventListener('focus', onVisibilityOrFocus);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthed]);

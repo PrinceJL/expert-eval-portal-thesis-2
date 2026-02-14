@@ -30,4 +30,10 @@ router.get("/me", authController.me);
  */
 router.post("/presence", authenticate, authController.setPresence);
 
+/**
+ * POST /auth/heartbeat
+ * Touches last activity for the authenticated session.
+ */
+router.post("/heartbeat", authenticate, authController.heartbeat);
+
 module.exports = router;

@@ -1,5 +1,4 @@
 const jwt = require("jsonwebtoken");
-const trackActivity = require("./activity.middleware");
 const { mongo } = require("../models");
 
 /**
@@ -28,15 +27,13 @@ const authenticate = async (req, res, next) => {
 
         // Enforce single active session:
         // only the latest login sessionId remains valid.
-        const activeSession = await mongo.SessionCache.findOneAndUpdate(
+        const activeSession = await mongo.SessionCache.findOne(
             {
                 userId,
                 sessionId,
                 expiresAt: { $gt: new Date() }
             },
-            { $set: { lastActivity: new Date() } },
             {
-                new: false,
                 projection: { _id: 1 }
             }
         );
@@ -45,9 +42,6 @@ const authenticate = async (req, res, next) => {
         }
 
         req.user = decoded;
-
-        // Track activity
-        await trackActivity(req, res, () => { });
 
         next();
     } catch (err) {
