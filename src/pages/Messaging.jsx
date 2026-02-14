@@ -311,25 +311,19 @@ export default function Messaging() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-[calc(100vh-64px)]">
+      <div className="flex justify-center items-center py-16">
         <span className="loading loading-spinner loading-lg text-primary"></span>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-4 h-[calc(100vh-64px)] flex flex-col">
-      <div className="flex justify-between items-center mb-4">
+    <div className="container mx-auto p-4 flex flex-col">
+      <div className="mb-4">
         <div>
           <h1 className="text-2xl font-bold">Messaging</h1>
           <p className="text-base-content/70">Connect with Admin support.</p>
         </div>
-        <button className="btn btn-ghost btn-sm" onClick={init}>
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-          </svg>
-          Reload
-        </button>
       </div>
 
       {error ? (
@@ -339,7 +333,7 @@ export default function Messaging() {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6 flex-1 min-h-0 bg-base-200 rounded-xl border border-base-300 shadow-2xl overflow-hidden">
+      <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6 min-h-[68vh] bg-base-200 rounded-xl border border-base-300 shadow-2xl overflow-hidden">
         {/* Contacts Sidebar */}
         <div className="flex flex-col border-r border-base-200 bg-base-200/30">
           <div className="p-4 border-b border-base-200 bg-base-100">

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 
 function SunIcon() {
@@ -16,31 +16,61 @@ function SunIcon() {
 
 function MoonIcon() {
   return (
-    <svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M21.752 15.002A9.718 9.718 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z"
+        d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"
+        stroke="currentColor"
+        strokeWidth="1.9"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   );
 }
 
-function DesktopIcon() {
+function BellIcon() {
   return (
-    <svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M5 4a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h3v2a1 1 0 0 1-1 1h10a1 1 0 0 1-1-1v-2h3a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H5Zm0 2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1H5Z"
+        d="M15 17h5l-1.4-1.4a2 2 0 0 1-.6-1.4v-3.2a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5m6 0a3 3 0 0 1-6 0m6 0H9"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
+    </svg>
+  );
+}
+
+function MenuIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
+      <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
+      <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ChevronIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M7 4l6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 
 export default function Navbar() {
   const { isAuthed, user, logout, setPresenceStatus } = useAuth();
+  const location = useLocation();
   const THEME_SWITCH_MS = 280;
+
   const [themeMode, setThemeMode] = useState(() => {
     try {
       return localStorage.getItem("themeMode") || "auto";
@@ -49,48 +79,127 @@ export default function Navbar() {
     }
   });
   const [resolvedTheme, setResolvedTheme] = useState("light");
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isPresenceMenuOpen, setIsPresenceMenuOpen] = useState(false);
-  const [presenceMenuSide, setPresenceMenuSide] = useState("right");
-  const [presenceSaving, setPresenceSaving] = useState(false);
-  const profileRef = useRef(null);
-  const presenceTriggerRef = useRef(null);
-  const hasThemeMountedRef = useRef(false);
-  const themeSwitchTimerRef = useRef(null);
-
-  const startThemeSwitchAnimation = () => {
-    const root = document.documentElement;
-    root.classList.add("theme-switching");
-
-    if (themeSwitchTimerRef.current) {
-      window.clearTimeout(themeSwitchTimerRef.current);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isDesktopSidebarHidden, setIsDesktopSidebarHidden] = useState(() => {
+    try {
+      const saved = localStorage.getItem("sidebarHiddenDesktop");
+      if (saved === null) return true;
+      return saved === "1";
+    } catch {
+      return true;
     }
+  });
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isPresenceMenuOpen, setIsPresenceMenuOpen] = useState(false);
+  const [presenceMenuSide, setPresenceMenuSide] = useState("left");
+  const [presenceSaving, setPresenceSaving] = useState(false);
+  const [isDesktopViewport, setIsDesktopViewport] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.innerWidth >= 1024;
+  });
 
-    themeSwitchTimerRef.current = window.setTimeout(() => {
-      root.classList.remove("theme-switching");
-      themeSwitchTimerRef.current = null;
-    }, THEME_SWITCH_MS);
-  };
+  const themeSwitchTimerRef = useRef(null);
+  const hasThemeMountedRef = useRef(false);
+  const profileWrapRef = useRef(null);
+  const notificationWrapRef = useRef(null);
+  const presenceTriggerRef = useRef(null);
+  const presenceMenuRef = useRef(null);
 
   const isAdmin = user?.role === "ADMIN" || user?.role === "RESEARCHER";
   const displayName = user?.username || "User";
   const displayEmail = user?.email || "No email on account";
   const avatarLetter = String(displayName).charAt(0).toUpperCase() || "U";
+
   const currentPresenceRaw = String(user?.presenceStatus || "online").toLowerCase();
   const currentPresence = ["online", "dnd", "invisible"].includes(currentPresenceRaw)
     ? currentPresenceRaw
     : "online";
 
   const presenceOptions = [
-    { value: "online", label: "Online", color: "#22c55e", description: "Automatic online, idle, and offline based on activity." },
-    { value: "dnd", label: "Do Not Disturb", color: "#ef4444", description: "You will not receive desktop notifications" },
-    { value: "invisible", label: "Invisible", color: "#94a3b8", description: "You will appear offline" }
+    { value: "online", label: "Online", color: "#22c55e", description: "Automatic online, idle, and offline with activity." },
+    { value: "dnd", label: "Do Not Disturb", color: "#ef4444", description: "Notifications muted." },
+    { value: "invisible", label: "Invisible", color: "#94a3b8", description: "You appear offline to others." }
   ];
   const currentPresenceOption = presenceOptions.find((o) => o.value === currentPresence) || presenceOptions[0];
+  const notifications = [
+    { id: 1, title: "New evaluation assigned", time: "2m ago", unread: true },
+    { id: 2, title: "Message from admin", time: "14m ago", unread: true },
+    { id: 3, title: "System health update", time: "1h ago", unread: false }
+  ];
+  const unreadCount = notifications.filter((n) => n.unread).length;
 
-  function getPresenceColor(mode) {
-    return presenceOptions.find((o) => o.value === mode)?.color || "#94a3b8";
-  }
+  const mainLinks = [
+    { to: "/dashboard", label: "Dashboard" },
+    { to: "/evaluation", label: "Evaluation" },
+    { to: "/messaging", label: "Messaging" },
+    { to: "/contact", label: "Contact Us" }
+  ];
+  const managementLinks = isAdmin
+    ? [
+      { to: "/admin/users", label: "User Management" },
+      { to: "/admin/contact", label: "Contact Info" }
+    ]
+    : [];
+
+  const startThemeSwitchAnimation = () => {
+    const root = document.documentElement;
+    root.classList.add("theme-switching");
+    if (themeSwitchTimerRef.current) {
+      window.clearTimeout(themeSwitchTimerRef.current);
+    }
+    themeSwitchTimerRef.current = window.setTimeout(() => {
+      root.classList.remove("theme-switching");
+      themeSwitchTimerRef.current = null;
+    }, THEME_SWITCH_MS);
+  };
+
+  const isDark = resolvedTheme === "dark";
+  const palette = isDark
+    ? {
+      sidebarBg: "#0c131f",
+      sidebarBorder: "#1e2b3e",
+      text: "#e5edf8",
+      brand: "#f8fbff",
+      muted: "#8ea2bf",
+      searchBg: "#101c2d",
+      searchBorder: "#273a56",
+      searchText: "#dce6f7",
+      link: "#afc1da",
+      linkActiveText: "#f6f9ff",
+      linkActiveBg: "#1a2a42",
+      linkActiveBorder: "#36527a",
+      menuBg: "#111b2c",
+      menuBorder: "#2a405e",
+      menuHover: "#1b2d46",
+      chipBg: "#15243a",
+      chipBorder: "#324d73",
+      shadow: "0 16px 34px rgba(0,0,0,0.34)"
+    }
+    : {
+      sidebarBg: "rgba(245, 248, 253, 0.74)",
+      sidebarBorder: "#d8e0ec",
+      text: "#1f2937",
+      brand: "#0f172a",
+      muted: "#6b7280",
+      searchBg: "rgba(255, 255, 255, 0.92)",
+      searchBorder: "#d2dbea",
+      searchText: "#1f2937",
+      link: "#4b5563",
+      linkActiveText: "#2554c7",
+      linkActiveBg: "#ebf2ff",
+      linkActiveBorder: "#c5d8ff",
+      menuBg: "#ffffff",
+      menuBorder: "#d0dbea",
+      menuHover: "#edf3fd",
+      chipBg: "#f3f7fd",
+      chipBorder: "#d0dbea",
+      shadow: "0 14px 30px rgba(15, 23, 42, 0.16)"
+    };
+
+  const isLightActive = themeMode === "light" || (themeMode === "auto" && resolvedTheme === "light");
+  const isDarkActive = themeMode === "dark" || (themeMode === "auto" && resolvedTheme === "dark");
+  const showFloatingToggle = !isDesktopViewport || isDesktopSidebarHidden;
 
   async function handlePresenceChange(nextStatus) {
     if (presenceSaving || currentPresence === nextStatus) return;
@@ -98,8 +207,6 @@ export default function Navbar() {
       setPresenceSaving(true);
       await setPresenceStatus(nextStatus);
       setIsPresenceMenuOpen(false);
-    } catch {
-      // Keep current status if update fails.
     } finally {
       setPresenceSaving(false);
     }
@@ -112,95 +219,32 @@ export default function Navbar() {
     }
 
     const triggerRect = presenceTriggerRef.current?.getBoundingClientRect();
-    const submenuWidth = 288;
+    const submenuWidth = 286;
     if (triggerRect) {
       const spaceRight = window.innerWidth - triggerRect.right;
       const spaceLeft = triggerRect.left;
       setPresenceMenuSide(spaceRight >= submenuWidth ? "right" : (spaceLeft >= submenuWidth ? "left" : "right"));
     } else {
-      setPresenceMenuSide("right");
+      setPresenceMenuSide("left");
     }
-
     setIsPresenceMenuOpen(true);
   }
 
-  const links = [
-    { to: "/dashboard", label: "Dashboard", show: true },
-    { to: "/evaluation", label: "Evaluation", show: true },
-    { to: "/messaging", label: "Messaging", show: true },
-    { to: "/contact", label: "Contact Us", show: true },
-    { to: "/admin/users", label: "User Management", show: isAdmin },
-    { to: "/admin/contact", label: "Contact Info", show: isAdmin },
-  ].filter((x) => x.show);
-
-  const isDark = resolvedTheme === "dark";
-  const palette = isDark
-    ? {
-      navBg: "#111317",
-      navBorder: "#2a2e36",
-      navText: "#f4f7fb",
-      brand: "#f8fbff",
-      link: "#b8c0cc",
-      linkActive: "#ffffff",
-      linkActiveBg: "rgba(255,255,255,0.06)",
-      avatarBg: "#1b1e24",
-      avatarBorder: "#343943",
-      avatarText: "#f3f6fb",
-      panelBg: "#2b2d31",
-      panelBorder: "#3a3d44",
-      panelDivider: "#43464d",
-      panelText: "#f0f3f8",
-      subText: "#bec4ce",
-      segmentBg: "#2b2d31",
-      segmentBorder: "#43464d",
-      segActive: "#3e434b",
-      segText: "#d4dae5",
-      menuText: "#f2f6fb",
-      panelShadow: "0 20px 42px rgba(0,0,0,0.45)"
-    }
-    : {
-      navBg: "#f8fafc",
-      navBorder: "#dfe5ee",
-      navText: "#111827",
-      brand: "#0f172a",
-      link: "#4b5563",
-      linkActive: "#0f172a",
-      linkActiveBg: "#e8edf6",
-      avatarBg: "#ffffff",
-      avatarBorder: "#ced6e2",
-      avatarText: "#0f172a",
-      panelBg: "#ffffff",
-      panelBorder: "#d7dde8",
-      panelDivider: "#e5eaf2",
-      panelText: "#0f172a",
-      subText: "#596274",
-      segmentBg: "#ffffff",
-      segmentBorder: "#e5eaf2",
-      segActive: "#dbe4f2",
-      segText: "#1e293b",
-      menuText: "#0f172a",
-      panelShadow: "0 16px 34px rgba(15,23,42,0.16)"
-    };
-
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
-
     const applyTheme = () => {
       const nextResolved = themeMode === "auto" ? (media.matches ? "dark" : "light") : themeMode;
-
       if (hasThemeMountedRef.current) {
         startThemeSwitchAnimation();
       } else {
         hasThemeMountedRef.current = true;
       }
-
       setResolvedTheme(nextResolved);
       document.documentElement.setAttribute("data-theme", nextResolved);
       document.documentElement.style.colorScheme = nextResolved;
     };
 
     applyTheme();
-
     try {
       localStorage.setItem("themeMode", themeMode);
     } catch {
@@ -208,30 +252,59 @@ export default function Navbar() {
     }
 
     if (themeMode !== "auto") return undefined;
-
     if (media.addEventListener) {
       media.addEventListener("change", applyTheme);
       return () => media.removeEventListener("change", applyTheme);
     }
-
     media.addListener(applyTheme);
     return () => media.removeListener(applyTheme);
   }, [themeMode]);
 
   useEffect(() => {
+    setIsMobileOpen(false);
+    setIsProfileOpen(false);
+    setIsNotificationOpen(false);
+    setIsPresenceMenuOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const onResize = () => setIsDesktopViewport(window.innerWidth >= 1024);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-sidebar-hidden", isDesktopSidebarHidden ? "1" : "0");
+    try {
+      localStorage.setItem("sidebarHiddenDesktop", isDesktopSidebarHidden ? "1" : "0");
+    } catch {
+      // ignore storage errors
+    }
+    return () => {
+      document.documentElement.removeAttribute("data-sidebar-hidden");
+    };
+  }, [isDesktopSidebarHidden]);
+
+  useEffect(() => {
     const onPointerDown = (event) => {
-      if (profileRef.current && !profileRef.current.contains(event.target)) {
+      const inProfile = profileWrapRef.current?.contains(event.target);
+      const inNotification = notificationWrapRef.current?.contains(event.target);
+      if (!inProfile) {
         setIsProfileOpen(false);
         setIsPresenceMenuOpen(false);
+      }
+      if (!inNotification) {
+        setIsNotificationOpen(false);
       }
     };
     const onKeyDown = (event) => {
       if (event.key === "Escape") {
+        setIsMobileOpen(false);
         setIsProfileOpen(false);
+        setIsNotificationOpen(false);
         setIsPresenceMenuOpen(false);
       }
     };
-
     document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
     return () => {
@@ -239,10 +312,6 @@ export default function Navbar() {
       document.removeEventListener("keydown", onKeyDown);
     };
   }, []);
-
-  useEffect(() => {
-    if (!isProfileOpen) setIsPresenceMenuOpen(false);
-  }, [isProfileOpen]);
 
   useEffect(() => () => {
     if (themeSwitchTimerRef.current) {
@@ -255,326 +324,357 @@ export default function Navbar() {
   if (!isAuthed) return null;
 
   return (
-    <div
-      className="navbar sticky top-0 z-30"
-      style={{
-        background: palette.navBg,
-        borderBottom: `1px solid ${palette.navBorder}`,
-        color: palette.navText,
-      }}
-    >
-      <div className="container mx-auto flex justify-between items-center" style={{ maxWidth: 1200 }}>
-        {/* Left */}
-        <div className="flex items-center gap-4">
-          <span className="text-lg font-bold" style={{ color: palette.brand }}>Eval Portal</span>
+    <>
+      <button
+        type="button"
+        className="app-sidebar-toggle"
+        onClick={() => {
+          if (isDesktopViewport) {
+            setIsDesktopSidebarHidden((prev) => !prev);
+          } else {
+            setIsMobileOpen((prev) => !prev);
+          }
+        }}
+        aria-label="Toggle navigation"
+        style={{
+          display: showFloatingToggle ? "inline-flex" : "none",
+          background: palette.searchBg,
+          border: `1px solid ${palette.searchBorder}`,
+          color: palette.text,
+          boxShadow: palette.shadow
+        }}
+      >
+        {(isMobileOpen || (isDesktopViewport && !isDesktopSidebarHidden)) ? <CloseIcon /> : <MenuIcon />}
+      </button>
 
-          <ul className="menu menu-horizontal px-1 gap-1" style={{ color: palette.link }}>
-            {links.map((l) => (
-              <li key={l.to}>
-                <NavLink
-                  to={l.to}
-                  className={({ isActive }) =>
-                    isActive ? "font-semibold" : ""
+      {isMobileOpen ? (
+        <button
+          type="button"
+          className="app-sidebar-overlay"
+          aria-label="Close navigation"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      ) : null}
+
+      <aside
+        className={`app-sidebar ${isMobileOpen ? "app-sidebar-open" : ""}`}
+        style={{
+          background: palette.sidebarBg,
+          borderRight: `1px solid ${palette.sidebarBorder}`,
+          color: palette.text
+        }}
+      >
+        <div className="app-sidebar-inner">
+          <header className="app-sidebar-brand-row">
+            <div className="app-sidebar-brand-wrap">
+              <span className="app-sidebar-brand-dot" />
+              <span className="app-sidebar-brand-text" style={{ color: palette.brand }}>
+                Eval Portal
+              </span>
+            </div>
+            <div className="app-sidebar-head-right">
+              <span className="app-sidebar-role-chip" style={{ color: palette.muted }}>
+                {String(user?.role || "USER").toLowerCase()}
+              </span>
+              <button
+                type="button"
+                aria-label="Hide sidebar"
+                title="Hide sidebar"
+                className="app-sidebar-collapse-btn"
+                onClick={() => {
+                  if (isDesktopViewport) {
+                    setIsDesktopSidebarHidden(true);
+                  } else {
+                    setIsMobileOpen(false);
                   }
-                  style={({ isActive }) => ({
-                    borderRadius: 10,
-                    padding: "8px 10px",
-                    color: isActive ? palette.linkActive : palette.link,
-                    background: isActive ? palette.linkActiveBg : "transparent"
-                  })}
-                >
-                  {l.label}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
-        </div>
+                }}
+                style={{ color: palette.muted }}
+              >
+                <CloseIcon />
+              </button>
+            </div>
+          </header>
 
-        {/* Right */}
-        <div className="flex items-center gap-3">
-          <div ref={profileRef} style={{ position: "relative" }}>
-            <button
-              type="button"
-              className="btn btn-ghost btn-circle"
-              aria-label="Open profile menu"
-              onClick={() => setIsProfileOpen((prev) => !prev)}
+          <label
+            className="app-sidebar-search"
+            style={{
+              background: palette.searchBg,
+              border: `1px solid ${palette.searchBorder}`
+            }}
+          >
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" aria-hidden="true" style={{ color: palette.muted }}>
+              <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.7" />
+              <path d="M20 20l-3.2-3.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+            </svg>
+            <input type="text" placeholder="Search" aria-label="Search" style={{ color: palette.searchText }} />
+          </label>
+
+          <div className="app-sidebar-section-title" style={{ color: palette.muted }}>Menu</div>
+          <nav className="app-sidebar-nav">
+            {mainLinks.map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                className={({ isActive }) => `app-sidebar-link ${isActive ? "active" : ""}`}
+                onClick={() => setIsMobileOpen(false)}
+                style={({ isActive }) => ({
+                  color: isActive ? palette.linkActiveText : palette.link,
+                  background: isActive ? palette.linkActiveBg : "transparent",
+                  borderColor: isActive ? palette.linkActiveBorder : "transparent"
+                })}
+              >
+                {link.label}
+              </NavLink>
+            ))}
+          </nav>
+
+          {managementLinks.length ? (
+            <>
+              <div className="app-sidebar-section-title" style={{ color: palette.muted }}>Settings</div>
+              <nav className="app-sidebar-nav">
+                {managementLinks.map((link) => (
+                  <NavLink
+                    key={link.to}
+                    to={link.to}
+                    className={({ isActive }) => `app-sidebar-link ${isActive ? "active" : ""}`}
+                    onClick={() => setIsMobileOpen(false)}
+                    style={({ isActive }) => ({
+                      color: isActive ? palette.linkActiveText : palette.link,
+                      background: isActive ? palette.linkActiveBg : "transparent",
+                      borderColor: isActive ? palette.linkActiveBorder : "transparent"
+                    })}
+                  >
+                    {link.label}
+                  </NavLink>
+                ))}
+              </nav>
+            </>
+          ) : null}
+          <div className="app-sidebar-spacer" />
+        </div>
+      </aside>
+
+      <div className="app-topbar-tools">
+        <button
+          type="button"
+          aria-label="Light mode"
+          title="Light mode"
+          className="app-topbar-icon-btn"
+          onClick={() => setThemeMode("light")}
+          style={{
+            color: palette.text,
+            background: isLightActive ? palette.menuHover : "transparent"
+          }}
+        >
+          <SunIcon />
+        </button>
+        <button
+          type="button"
+          aria-label="Dark mode"
+          title="Dark mode"
+          className="app-topbar-icon-btn"
+          onClick={() => setThemeMode("dark")}
+          style={{
+            color: palette.text,
+            background: isDarkActive ? palette.menuHover : "transparent"
+          }}
+        >
+          <MoonIcon />
+        </button>
+
+        <div ref={notificationWrapRef} className="app-topbar-notification-wrap">
+          <button
+            type="button"
+            aria-label="Notifications"
+            title="Notifications"
+            className="app-topbar-icon-btn"
+            onClick={() => setIsNotificationOpen((prev) => !prev)}
+            style={{
+              color: palette.text,
+              background: isNotificationOpen ? palette.menuHover : "transparent"
+            }}
+          >
+            <BellIcon />
+            {unreadCount ? <span className="app-topbar-notification-dot" /> : null}
+          </button>
+
+          {isNotificationOpen ? (
+            <div
+              className="app-topbar-notification-menu"
               style={{
-                width: 38,
-                height: 38,
-                minHeight: 38,
-                padding: 0,
-                borderRadius: 999,
-                background: palette.avatarBg,
-                border: `1px solid ${palette.avatarBorder}`
+                background: palette.menuBg,
+                border: `1px solid ${palette.menuBorder}`,
+                color: palette.text,
+                boxShadow: palette.shadow
               }}
             >
-              <div
-                className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold relative"
-                style={{ color: palette.avatarText }}
-              >
-                {avatarLetter}
-                <span
-                  className="absolute rounded-full border shadow-sm"
-                  style={{
-                    bottom: 1,
-                    right: -1,
-                    width: 9,
-                    height: 9,
-                    background: getPresenceColor(currentPresence),
-                    borderColor: palette.avatarBg
-                  }}
-                  title={currentPresenceOption.label || "Presence"}
-                />
+              <div className="app-topbar-notification-head">
+                <span>Notifications</span>
+                {unreadCount ? <span className="text-xs opacity-70">{unreadCount} new</span> : null}
               </div>
-            </button>
+              <div className="app-topbar-notification-list">
+                {notifications.map((item) => (
+                  <div
+                    key={item.id}
+                    className="app-topbar-notification-item"
+                    style={{ background: item.unread ? palette.menuHover : "transparent" }}
+                  >
+                    <div className="app-topbar-notification-title-wrap">
+                      <span className="app-topbar-notification-title">{item.title}</span>
+                      {item.unread ? <span className="app-topbar-notification-unread" /> : null}
+                    </div>
+                    <span className="app-topbar-notification-time">{item.time}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
 
-            {isProfileOpen ? (
+        <div ref={profileWrapRef} className="app-topbar-profile-wrap">
+          <button
+            type="button"
+            className="app-topbar-avatar-btn"
+            onClick={() => {
+              setIsProfileOpen((prev) => !prev);
+              if (isProfileOpen) setIsPresenceMenuOpen(false);
+            }}
+            aria-label="Open profile menu"
+            style={{
+              background: palette.chipBg,
+              border: `1px solid ${palette.chipBorder}`,
+              color: palette.text,
+              boxShadow: palette.shadow
+            }}
+          >
+            <span className="app-topbar-avatar-letter">{avatarLetter}</span>
+            <span className="app-topbar-avatar-dot" style={{ background: currentPresenceOption.color }} />
+          </button>
+
+          {isProfileOpen ? (
+            <div
+              className="app-topbar-profile-menu"
+              style={{
+                background: palette.menuBg,
+                border: `1px solid ${palette.menuBorder}`,
+                color: palette.text,
+                boxShadow: palette.shadow
+              }}
+            >
+              <div className="app-topbar-profile-head">
+                <p className="app-sidebar-user-name">{displayName}</p>
+                <p className="app-sidebar-user-email" style={{ color: palette.muted }}>{displayEmail}</p>
+              </div>
+
+              <div className="app-sidebar-presence-wrap">
+                <button
+                  ref={presenceTriggerRef}
+                  type="button"
+                  onClick={togglePresenceMenu}
+                  disabled={presenceSaving}
+                  className="app-presence-btn"
+                  style={{
+                    background: palette.chipBg,
+                    border: `1px solid ${palette.chipBorder}`,
+                    color: palette.text
+                  }}
+                >
+                  <span className="app-presence-label">
+                    <span className="app-presence-dot" style={{ background: currentPresenceOption.color }} />
+                    <span>{currentPresenceOption.label}</span>
+                  </span>
+                  <ChevronIcon />
+                </button>
+
+                {isPresenceMenuOpen ? (
+                  <div
+                    ref={presenceMenuRef}
+                    className={`app-presence-menu ${presenceMenuSide === "left" ? "is-left" : ""}`}
+                    style={{
+                      background: palette.menuBg,
+                      border: `1px solid ${palette.menuBorder}`,
+                      boxShadow: palette.shadow
+                    }}
+                  >
+                    {presenceOptions.map((opt) => {
+                      const active = currentPresence === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          disabled={presenceSaving}
+                          onClick={() => handlePresenceChange(opt.value)}
+                          className="app-presence-menu-item"
+                          style={{ background: active ? palette.menuHover : "transparent", color: palette.text }}
+                        >
+                          <span className="app-presence-label">
+                            <span className="app-presence-dot" style={{ background: opt.color }} />
+                            <span>{opt.label}</span>
+                          </span>
+                          <span className="app-presence-menu-desc" style={{ color: palette.muted }}>
+                            {opt.description}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+
               <div
-                className="w-72 rounded-2xl"
+                className="app-profile-theme-row"
                 style={{
-                  position: "absolute",
-                  right: 0,
-                  top: "calc(100% + 10px)",
-                  zIndex: 50,
-                  background: palette.panelBg,
-                  border: `1px solid ${palette.panelBorder}`,
-                  boxShadow: palette.panelShadow,
-                  color: palette.panelText
+                  background: palette.chipBg,
+                  border: `1px solid ${palette.chipBorder}`
                 }}
               >
-                <div className="px-4 pt-3 pb-2">
-                  <div className="font-semibold leading-tight truncate" style={{ fontSize: 20 }}>{displayName}</div>
-                  <div className="text-sm truncate" style={{ color: palette.subText, marginTop: 4 }}>{displayEmail}</div>
-                </div>
-
-                <div className="px-4 py-3 relative">
-                  <button
-                    ref={presenceTriggerRef}
-                    type="button"
-                    className="focus:outline-none focus-visible:outline-none"
-                    disabled={presenceSaving}
-                    onClick={togglePresenceMenu}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 10,
-                      width: "100%",
-                      border: "none",
-                      borderRadius: 10,
-                      padding: "8px 10px",
-                      textAlign: "left",
-                      fontSize: 14,
-                      color: palette.menuText,
-                      background: isDark ? "rgba(255,255,255,0.06)" : "#eef2f9",
-                      cursor: presenceSaving ? "wait" : "pointer",
-                      outline: "none",
-                      boxShadow: "none"
-                    }}
-                  >
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-                      <span
-                        style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: 999,
-                          background: currentPresenceOption.color
-                        }}
-                      />
-                      <span style={{ fontWeight: 600 }}>{currentPresenceOption.label}</span>
-                    </span>
-                    <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                      <path d="M7 4l6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </button>
-
-                  {isPresenceMenuOpen ? (
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: 0,
-                        left: presenceMenuSide === "right" ? "calc(100% + 8px)" : "auto",
-                        right: presenceMenuSide === "left" ? "calc(100% + 8px)" : "auto",
-                        width: 280,
-                        zIndex: 60,
-                        background: palette.panelBg,
-                        border: `1px solid ${palette.panelBorder}`,
-                        borderRadius: 12,
-                        boxShadow: isDark ? "0 16px 34px rgba(0,0,0,0.45)" : "0 12px 30px rgba(15,23,42,0.18)",
-                        overflow: "hidden",
-                        padding: "6px 0"
-                      }}
-                    >
-                      {presenceOptions.map((opt) => {
-                        const active = currentPresence === opt.value;
-                        return (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            className="focus:outline-none focus-visible:outline-none"
-                            disabled={presenceSaving}
-                            onClick={() => handlePresenceChange(opt.value)}
-                            style={{
-                              width: "calc(100% - 12px)",
-                              margin: "2px 6px",
-                              border: "none",
-                              textAlign: "left",
-                              padding: "10px 12px",
-                              borderRadius: 10,
-                              background: active ? (isDark ? "rgba(255,255,255,0.1)" : "#eef2f9") : "transparent",
-                              color: palette.menuText,
-                              cursor: presenceSaving ? "wait" : "pointer",
-                              outline: "none",
-                              boxShadow: "none"
-                            }}
-                          >
-                            <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                              <span style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                                <span
-                                  style={{
-                                    width: 8,
-                                    height: 8,
-                                    marginTop: 6,
-                                    borderRadius: 999,
-                                    background: opt.color
-                                  }}
-                                />
-                                <span>
-                                  <span style={{ display: "block", fontWeight: active ? 700 : 600, lineHeight: 1.2 }}>
-                                    {opt.label}
-                                  </span>
-                                  {opt.description ? (
-                                    <span style={{ display: "block", marginTop: 3, fontSize: 12, color: palette.subText }}>
-                                      {opt.description}
-                                    </span>
-                                  ) : null}
-                                </span>
-                              </span>
-                              {opt.value !== "invisible" ? (
-                                <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true" style={{ opacity: 0.7 }}>
-                                  <path d="M7 4l6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                              ) : (
-                                <span style={{ width: 14, height: 14 }} />
-                              )}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : null}
-                </div>
-
-                <div className="px-4 py-3" style={{ borderBottom: `1px solid ${palette.panelDivider}` }}>
-                  <div
-                    style={{
-                      display: "inline-flex",
-                      gap: 4,
-                      padding: 3,
-                      borderRadius: 10,
-                      background: palette.segmentBg,
-                      border: `1px solid ${palette.segmentBorder}`
-                    }}
-                  >
-                    <button
-                      type="button"
-                      className="btn btn-sm"
-                      onClick={() => setThemeMode("light")}
-                      title="Light mode"
-                      aria-label="Light mode"
-                      style={{
-                        width: 32,
-                        minHeight: 32,
-                        height: 32,
-                        padding: 0,
-                        border: "none",
-                        borderRadius: 8,
-                        color: palette.segText,
-                        background: themeMode === "light" ? palette.segActive : "transparent",
-                      }}
-                    >
-                      <SunIcon />
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-sm"
-                      onClick={() => setThemeMode("dark")}
-                      title="Dark mode"
-                      aria-label="Dark mode"
-                      style={{
-                        width: 32,
-                        minHeight: 32,
-                        height: 32,
-                        padding: 0,
-                        border: "none",
-                        borderRadius: 8,
-                        color: palette.segText,
-                        background: themeMode === "dark" ? palette.segActive : "transparent",
-                      }}
-                    >
-                      <MoonIcon />
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-sm"
-                      onClick={() => setThemeMode("auto")}
-                      title="Auto mode"
-                      aria-label="Auto mode"
-                      style={{
-                        width: 32,
-                        minHeight: 32,
-                        height: 32,
-                        padding: 0,
-                        border: "none",
-                        borderRadius: 8,
-                        color: palette.segText,
-                        background: themeMode === "auto" ? palette.segActive : "transparent",
-                      }}
-                    >
-                      <DesktopIcon />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="px-4 py-3 grid gap-1.5">
-                  <NavLink
-                    to="/dashboard"
-                    onClick={() => setIsProfileOpen(false)}
-                    style={{ color: palette.menuText, fontSize: 16, padding: "4px 0" }}
-                  >
-                    Your profile
-                  </NavLink>
-                  <NavLink
-                    to="/contact"
-                    onClick={() => setIsProfileOpen(false)}
-                    style={{ color: palette.menuText, fontSize: 16, padding: "4px 0" }}
-                  >
-                    Help
-                  </NavLink>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsProfileOpen(false);
-                      logout({ withTransition: true });
-                    }}
-                    style={{
-                      color: palette.menuText,
-                      fontSize: 16,
-                      textAlign: "left",
-                      background: "transparent",
-                      border: "none",
-                      padding: "4px 0",
-                      fontWeight: 500,
-                    }}
-                  >
-                    Log out
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  aria-label="Light mode"
+                  title="Light mode"
+                  className="app-theme-btn"
+                  onClick={() => setThemeMode("light")}
+                  style={{
+                    color: palette.text,
+                    background: isLightActive ? palette.menuHover : "transparent"
+                  }}
+                >
+                  <SunIcon />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Dark mode"
+                  title="Dark mode"
+                  className="app-theme-btn"
+                  onClick={() => setThemeMode("dark")}
+                  style={{
+                    color: palette.text,
+                    background: isDarkActive ? palette.menuHover : "transparent"
+                  }}
+                >
+                  <MoonIcon />
+                </button>
               </div>
-            ) : null}
-          </div>
+
+              <div className="app-profile-menu-actions">
+                <NavLink to="/contact" className="app-profile-menu-link" onClick={() => setIsProfileOpen(false)}>
+                  Help
+                </NavLink>
+                <button
+                  type="button"
+                  className="app-profile-menu-link"
+                  onClick={() => {
+                    setIsProfileOpen(false);
+                    logout({ withTransition: true });
+                  }}
+                >
+                  Log out
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
-    </div>
+    </>
   );
 }

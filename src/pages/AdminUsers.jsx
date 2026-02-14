@@ -39,6 +39,15 @@ export default function AdminUsers() {
     password: '',
     confirmPassword: ''
   });
+  const [editDialog, setEditDialog] = useState({
+    open: false,
+    userId: '',
+    username: '',
+    email: '',
+    group: '',
+    role: 'EXPERT',
+    isActive: true
+  });
 
   const stats = useMemo(() => {
     const total = users.length;
@@ -152,6 +161,54 @@ export default function AdminUsers() {
     }));
   }
 
+  function openEditDialog(targetUser) {
+    setEditDialog({
+      open: true,
+      userId: String(targetUser.id),
+      username: targetUser.username,
+      email: targetUser.email || '',
+      group: targetUser.group || '',
+      role: targetUser.role || 'EXPERT',
+      isActive: Boolean(targetUser.isActive)
+    });
+  }
+
+  function closeEditDialog() {
+    setEditDialog((prev) => ({
+      ...prev,
+      open: false
+    }));
+  }
+
+  async function submitEditUser(e) {
+    e.preventDefault();
+    setMsg('');
+    setError('');
+
+    const usernameLabel = editDialog.username;
+    const payload = {
+      email: editDialog.email.trim(),
+      group: editDialog.group.trim(),
+      role: editDialog.role,
+      isActive: !!editDialog.isActive
+    };
+
+    setBusyActionKey(`${editDialog.userId}:edit`);
+    try {
+      await apiFetch(`/admin/users/${editDialog.userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+      });
+      setMsg(`User "${usernameLabel}" updated.`);
+      closeEditDialog();
+      await load();
+    } catch (e2) {
+      setError(e2.message);
+    } finally {
+      setBusyActionKey('');
+    }
+  }
+
   async function submitManualPassword(e) {
     e.preventDefault();
     setMsg('');
@@ -207,9 +264,9 @@ export default function AdminUsers() {
   }
 
   return (
-    <div className="min-h-screen bg-base-200 text-base-content font-sans admin-users-shell">
-      <div className="container mx-auto p-6 max-w-7xl animate-fade-in space-y-6">
-        <div className="flex flex-wrap items-end justify-between gap-3 border-b border-base-300 pb-4">
+    <div className="min-h-screen text-base-content font-sans admin-users-shell">
+      <div className="container mx-auto p-6 max-w-7xl animate-fade-in space-y-6 admin-users-content">
+        <div className="flex flex-wrap items-end justify-between gap-3 border-b border-base-300 pb-4 admin-users-header">
           <div>
             <h1 className="text-3xl font-bold">User Management</h1>
             <p className="text-base-content/70 mt-2 text-lg">
@@ -234,23 +291,23 @@ export default function AdminUsers() {
         ) : null}
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <div className="rounded-xl border border-base-300 bg-base-100 p-3">
+          <div className="rounded-xl border border-base-300 bg-base-100 p-3 admin-users-stat">
             <p className="text-xs uppercase opacity-60">Total</p>
             <p className="text-2xl font-bold">{stats.total}</p>
           </div>
-          <div className="rounded-xl border border-base-300 bg-base-100 p-3">
+          <div className="rounded-xl border border-base-300 bg-base-100 p-3 admin-users-stat">
             <p className="text-xs uppercase opacity-60">Active</p>
             <p className="text-2xl font-bold text-success">{stats.active}</p>
           </div>
-          <div className="rounded-xl border border-base-300 bg-base-100 p-3">
+          <div className="rounded-xl border border-base-300 bg-base-100 p-3 admin-users-stat">
             <p className="text-xs uppercase opacity-60">Admins</p>
             <p className="text-2xl font-bold">{stats.admins}</p>
           </div>
-          <div className="rounded-xl border border-base-300 bg-base-100 p-3">
+          <div className="rounded-xl border border-base-300 bg-base-100 p-3 admin-users-stat">
             <p className="text-xs uppercase opacity-60">Experts</p>
             <p className="text-2xl font-bold">{stats.experts}</p>
           </div>
-          <div className="rounded-xl border border-base-300 bg-base-100 p-3">
+          <div className="rounded-xl border border-base-300 bg-base-100 p-3 admin-users-stat">
             <p className="text-xs uppercase opacity-60">Researchers</p>
             <p className="text-2xl font-bold">{stats.researchers}</p>
           </div>
@@ -262,7 +319,7 @@ export default function AdminUsers() {
           </div>
         ) : (
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-            <div className="xl:col-span-4 card bg-base-100 shadow-xl border border-base-300">
+            <div className="xl:col-span-4 card bg-base-100 shadow-xl border border-base-300 admin-users-panel admin-users-panel-create">
               <div className="card-body">
                 <h2 className="card-title text-primary">Create User</h2>
                 <form onSubmit={createUser} className="space-y-4 admin-users-form">
@@ -324,12 +381,12 @@ export default function AdminUsers() {
                     />
                   </div>
 
-                  <button className="btn btn-primary w-full mt-2" type="submit">Create User</button>
+                  <button className="btn btn-primary w-full mt-2 admin-users-create-btn" type="submit">Create User</button>
                 </form>
               </div>
             </div>
 
-            <div className="xl:col-span-8 card bg-base-100 shadow-xl border border-base-300">
+            <div className="xl:col-span-8 card bg-base-100 shadow-xl border border-base-300 admin-users-panel admin-users-panel-list">
               <div className="card-body gap-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h2 className="card-title text-secondary">All Users</h2>
@@ -357,7 +414,7 @@ export default function AdminUsers() {
                   </select>
                 </div>
 
-                <div className="overflow-x-auto rounded-xl border border-base-300">
+                <div className="overflow-x-auto rounded-xl border border-base-300 admin-users-table-wrap">
                   <table className="table table-pin-rows w-full">
                     <thead>
                       <tr>
@@ -384,7 +441,7 @@ export default function AdminUsers() {
                               <span className={`badge badge-sm ${roleBadgeClass(u.role)}`}>{u.role}</span>
                             </td>
                             <td>
-                              <span className="badge badge-ghost badge-sm">{u.group}</span>
+                              <span className="badge badge-ghost badge-sm">{u.group || 'No group'}</span>
                             </td>
                             <td>
                               {u.isActive ? (
@@ -395,6 +452,13 @@ export default function AdminUsers() {
                             </td>
                             <td>
                               <div className="flex gap-2 justify-center flex-wrap">
+                                <button
+                                  className="btn btn-ghost btn-xs border border-base-300"
+                                  onClick={() => openEditDialog(u)}
+                                  disabled={actionBusy}
+                                >
+                                  Edit
+                                </button>
                                 <button
                                   className="btn btn-ghost btn-xs border border-base-300"
                                   onClick={() => openPasswordDialog(u)}
@@ -497,6 +561,88 @@ export default function AdminUsers() {
             </form>
           </div>
           <div className="modal-backdrop" onClick={closePasswordDialog}></div>
+        </dialog>
+      ) : null}
+
+      {editDialog.open ? (
+        <dialog className="modal modal-open">
+          <div className="modal-box admin-password-modal">
+            <h3 className="font-bold text-lg">Edit User</h3>
+            <p className="text-sm opacity-70 mt-1">Update profile fields for <span className="font-semibold">{editDialog.username}</span>.</p>
+
+            <form className="mt-4 space-y-3 admin-users-form" onSubmit={submitEditUser}>
+              <div className="form-control">
+                <label className="label"><span className="label-text">Email</span></label>
+                <input
+                  type="email"
+                  className="input input-bordered w-full"
+                  placeholder="user@example.com"
+                  value={editDialog.email}
+                  onChange={(e) => setEditDialog((prev) => ({ ...prev, email: e.target.value }))}
+                  required
+                />
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Group</span>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-xs h-auto min-h-0 px-2 py-1"
+                    onClick={() => setEditDialog((prev) => ({ ...prev, group: '' }))}
+                  >
+                    Clear Group
+                  </button>
+                </label>
+                <input
+                  type="text"
+                  className="input input-bordered w-full"
+                  placeholder="Leave blank for no group"
+                  value={editDialog.group}
+                  onChange={(e) => setEditDialog((prev) => ({ ...prev, group: e.target.value }))}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="form-control">
+                  <label className="label"><span className="label-text">Role</span></label>
+                  <select
+                    className="select select-bordered w-full"
+                    value={editDialog.role}
+                    onChange={(e) => setEditDialog((prev) => ({ ...prev, role: e.target.value }))}
+                  >
+                    <option value="EXPERT">EXPERT</option>
+                    <option value="RESEARCHER">RESEARCHER</option>
+                    <option value="ADMIN">ADMIN</option>
+                  </select>
+                </div>
+
+                <div className="form-control">
+                  <label className="label"><span className="label-text">Status</span></label>
+                  <select
+                    className="select select-bordered w-full"
+                    value={editDialog.isActive ? 'ACTIVE' : 'DISABLED'}
+                    onChange={(e) => setEditDialog((prev) => ({ ...prev, isActive: e.target.value === 'ACTIVE' }))}
+                  >
+                    <option value="ACTIVE">Active</option>
+                    <option value="DISABLED">Disabled</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="modal-action mt-5">
+                <button type="button" className="btn btn-ghost" onClick={closeEditDialog}>Cancel</button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={busyActionKey === `${editDialog.userId}:edit`}
+                >
+                  {busyActionKey === `${editDialog.userId}:edit` ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+          <div className="modal-backdrop" onClick={closeEditDialog}></div>
         </dialog>
       ) : null}
     </div>

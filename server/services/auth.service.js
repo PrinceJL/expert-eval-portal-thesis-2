@@ -40,7 +40,6 @@ async function login({ username, password, deviceFingerprint, req }) {
 
         const user = await sql.User.findOne({
             where: {
-                isActive: true,
                 [Op.or]: [
                     { username },
                     { email: username }
@@ -50,6 +49,12 @@ async function login({ username, password, deviceFingerprint, req }) {
         if (!user) {
             const err = new Error("Invalid credentials");
             err.statusCode = 401;
+            throw err;
+        }
+
+        if (!user.isActive) {
+            const err = new Error("This account is disabled. Please contact an administrator.");
+            err.statusCode = 403;
             throw err;
         }
 
