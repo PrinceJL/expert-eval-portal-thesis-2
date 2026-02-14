@@ -11,8 +11,6 @@ import EvaluationList from './pages/EvaluationList';
 import EvaluationPage from './pages/EvaluationPage';
 import Messaging from './pages/Messaging';
 import Contact from './pages/Contact';
-import AdminEvaluations from './pages/AdminEvaluations';
-import AdminMaintenance from './pages/AdminMaintenance';
 
 import AdminUsers from './pages/AdminUsers';
 import AdminContact from './pages/AdminContact';
@@ -97,28 +95,10 @@ export default function App() {
           />
 
           <Route
-            path="/admin/evaluations"
-            element={
-              <ProtectedRoute allowRoles={['ADMIN', 'RESEARCHER']}>
-                <AdminEvaluations />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
             path="/admin/users"
             element={
               <ProtectedRoute allowRoles={['ADMIN', 'RESEARCHER']}>
                 <AdminUsers />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/admin/maintenance"
-            element={
-              <ProtectedRoute allowRoles={['ADMIN', 'RESEARCHER']}>
-                <AdminMaintenance />
               </ProtectedRoute>
             }
           />

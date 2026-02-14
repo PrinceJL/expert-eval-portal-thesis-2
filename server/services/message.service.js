@@ -6,12 +6,17 @@ const Message = require("../models/mongo/message.model");
  * @returns {Promise<Object>} The created message.
  */
 async function sendMessage(data) {
-    if (!data.conversationId || !data.content) {
+    const content = String(data?.content || "").trim();
+    const attachments = Array.isArray(data?.attachments) ? data.attachments : [];
+
+    if (!data?.conversationId || (!content && !attachments.length)) {
         throw new Error("Missing required message fields");
     }
 
     const message = new Message({
         ...data,
+        content,
+        attachments,
         isRead: false,
         createdAt: new Date()
     });

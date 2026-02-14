@@ -12,6 +12,49 @@ function convoId(a, b) {
   return x < y ? `${x}-${y}` : `${y}-${x}`;
 }
 
+function normalizeAttachments(rawAttachments) {
+  if (!Array.isArray(rawAttachments)) return [];
+
+  const allowedTypes = new Set(["image", "video", "document"]);
+  return rawAttachments
+    .filter((att) => att && typeof att === "object")
+    .map((att) => {
+      const type = String(att.type || "").toLowerCase();
+      const safeType = allowedTypes.has(type) ? type : "document";
+      const url = String(att.url || "").trim();
+      const filename = String(att.filename || "").trim();
+      const size = Number(att.size);
+      return {
+        type: safeType,
+        url,
+        filename,
+        size: Number.isFinite(size) && size > 0 ? size : 0
+      };
+    })
+    .filter((att) => att.url && att.filename)
+    .slice(0, 5);
+}
+
+async function canMessageRecipient(me, recipientId) {
+  const where = {
+    id: String(recipientId),
+    isActive: true
+  };
+
+  if (String(me?.role || "").toUpperCase() === "EXPERT") {
+    where[Op.or] = [
+      { role: { [Op.in]: ["ADMIN", "RESEARCHER"] } },
+      { role: "EXPERT", group: me.group }
+    ];
+  }
+
+  const recipient = await sql.User.findOne({
+    where,
+    attributes: ["id", "role", "group", "isActive"]
+  });
+  return Boolean(recipient);
+}
+
 const ONLINE_WINDOW_MS = Number(process.env.ONLINE_WINDOW_MS || 2 * 60 * 1000);
 const IDLE_DURATION_MS = Number(process.env.IDLE_DURATION_MS || 5 * 60 * 1000);
 const OFFLINE_WINDOW_MS = Number(process.env.OFFLINE_WINDOW_MS || ONLINE_WINDOW_MS + IDLE_DURATION_MS);
@@ -80,7 +123,7 @@ async function getContacts(req, res) {
       users = await sql.User.findAll({
         where: {
           [Op.or]: [
-            { role: ["ADMIN", "RESEARCHER"] },
+            { role: { [Op.in]: ["ADMIN", "RESEARCHER"] } },
             { group: me.group, role: "EXPERT" }
           ],
           isActive: true
@@ -160,18 +203,29 @@ async function uploadMedia(req, res) {
 async function send(req, res) {
   try {
     const senderId = String(req.user.id);
-    const { recipientId, content, attachments } = req.body;
-    if (!recipientId || (!content && !attachments?.length)) {
+    const recipientId = String(req.body?.recipientId || "").trim();
+    const content = String(req.body?.content || "").trim();
+    const attachments = normalizeAttachments(req.body?.attachments);
+
+    if (!recipientId || (!content && !attachments.length)) {
       return res.status(400).json({ error: "Missing recipientId or message content" });
+    }
+    if (recipientId === senderId) {
+      return res.status(400).json({ error: "Cannot send a message to yourself" });
+    }
+
+    const recipientAllowed = await canMessageRecipient(req.user, recipientId);
+    if (!recipientAllowed) {
+      return res.status(403).json({ error: "You are not allowed to message this user" });
     }
 
     const conversationId = convoId(senderId, recipientId);
     const msg = await messageService.sendMessage({
       conversationId,
       senderId,
-      recipientId: String(recipientId),
-      content: String(content || ""),
-      attachments: attachments || []
+      recipientId,
+      content,
+      attachments
     });
 
     try {
@@ -197,11 +251,11 @@ async function getConversation(req, res) {
     const limit = Math.min(parseInt(req.query.limit || "50", 10), 200);
     const skip = Math.max(parseInt(req.query.skip || "0", 10), 0);
 
-    if (!String(conversationId).includes(userId)) {
-      return res.status(403).json({ error: "Forbidden" });
-    }
-
-    const msgs = await mongo.Message.find({ conversationId })
+    // Restrict reads to messages where requester is an actual participant.
+    const msgs = await mongo.Message.find({
+      conversationId: String(conversationId),
+      $or: [{ senderId: userId }, { recipientId: userId }]
+    })
       .sort({ createdAt: 1 })
       .skip(skip)
       .limit(limit);

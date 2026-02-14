@@ -130,8 +130,6 @@ export default function Navbar() {
     { to: "/messaging", label: "Messaging", show: true },
     { to: "/contact", label: "Contact Us", show: true },
     { to: "/admin/users", label: "User Management", show: isAdmin },
-    { to: "/admin/evaluations", label: "Evaluation Management", show: isAdmin },
-    { to: "/admin/maintenance", label: "Maintenance Management", show: isAdmin },
     { to: "/admin/contact", label: "Contact Info", show: isAdmin },
   ].filter((x) => x.show);
 
