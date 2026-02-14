@@ -177,7 +177,8 @@ export default function Navbar() {
       shadow: "0 16px 34px rgba(0,0,0,0.34)"
     }
     : {
-      sidebarBg: "rgba(245, 248, 253, 0.74)",
+      sidebarBg:
+        "radial-gradient(520px 260px at 8% -12%, rgba(171, 211, 255, 0.56) 0%, rgba(255, 255, 255, 0) 72%), linear-gradient(180deg, rgba(245, 249, 255, 0.9) 0%, rgba(239, 245, 255, 0.82) 100%)",
       sidebarBorder: "#d8e0ec",
       text: "#1f2937",
       brand: "#0f172a",

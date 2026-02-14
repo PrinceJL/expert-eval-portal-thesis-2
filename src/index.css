@@ -82,13 +82,13 @@ body,
   background:
     radial-gradient(
       1080px 500px at 7% -10%,
-      rgba(179, 215, 255, 0.5) 0%,
-      rgba(219, 227, 255, 0.34) 36%,
+      rgba(179, 215, 255, 0.68) 0%,
+      rgba(219, 227, 255, 0.46) 36%,
       rgba(255, 255, 255, 0) 72%
     ),
     radial-gradient(
       820px 390px at 90% -6%,
-      rgba(211, 231, 255, 0.24) 0%,
+      rgba(211, 231, 255, 0.34) 0%,
       rgba(255, 255, 255, 0) 70%
     ),
     linear-gradient(180deg, #f7faff 0%, #eef3fb 54%, #e8eef7 100%);
@@ -113,7 +113,14 @@ body,
   height: var(--app-header-height);
   min-height: var(--app-header-height);
   border-bottom: 1px solid rgba(203, 213, 225, 0.82);
-  background: rgba(249, 252, 255, 0.64);
+  background:
+    radial-gradient(
+      760px 220px at 8% -40%,
+      rgba(172, 214, 255, 0.46) 0%,
+      rgba(218, 230, 255, 0.26) 42%,
+      rgba(249, 252, 255, 0) 84%
+    ),
+    rgba(249, 252, 255, 0.68);
   backdrop-filter: blur(10px) saturate(118%);
   -webkit-backdrop-filter: blur(10px) saturate(118%);
 }
