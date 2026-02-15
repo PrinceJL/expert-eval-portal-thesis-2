@@ -60,6 +60,12 @@ npm run dev:server
 npm run dev
 ```
 
+If you are getting a login error, run this.
+```powershell
+$env:NODE_ENV="development"
+npm.cmd run dev:all
+```
+
 ## Verification
 
 ### Manual Verification
