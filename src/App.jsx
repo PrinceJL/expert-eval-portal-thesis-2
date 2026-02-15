@@ -47,6 +47,7 @@ function getPageLabel(pathname) {
 
 export default function App() {
   const { logoutTransitionPhase, loginTransitionPhase, isAuthed, user } = useAuth();
+  const APP_BRAND_NAME = 'Evaluation Portal';
   const CRUMB_SWIPE_MS = 180;
   const showLogoutTransition = logoutTransitionPhase !== 'idle';
   const showLoginTransition = loginTransitionPhase !== 'idle';
@@ -55,11 +56,11 @@ export default function App() {
   const routeTransitionKey = `${location.pathname}${location.search}`;
   const pageLabel = getPageLabel(location.pathname);
   const [breadcrumbTarget, setBreadcrumbTarget] = useState({
-    previous: 'Eval Portal',
+    previous: APP_BRAND_NAME,
     current: pageLabel
   });
   const [breadcrumbDisplay, setBreadcrumbDisplay] = useState({
-    previous: 'Eval Portal',
+    previous: APP_BRAND_NAME,
     current: pageLabel
   });
   const [breadcrumbTransition, setBreadcrumbTransition] = useState(null);
@@ -68,7 +69,7 @@ export default function App() {
   const breadcrumbNavIntentRef = useRef('neutral');
   const breadcrumbIntentResetTimerRef = useRef(null);
   const breadcrumbDisplayRef = useRef({
-    previous: 'Eval Portal',
+    previous: APP_BRAND_NAME,
     current: pageLabel
   });
 
@@ -115,7 +116,7 @@ export default function App() {
     }
 
     const previousPath = visitedPaths.length > 1 ? visitedPaths[visitedPaths.length - 2] : '';
-    const previous = previousPath ? getPageLabel(previousPath) : 'Eval Portal';
+    const previous = previousPath ? getPageLabel(previousPath) : APP_BRAND_NAME;
     setBreadcrumbTarget({
       previous,
       current: getPageLabel(location.pathname)

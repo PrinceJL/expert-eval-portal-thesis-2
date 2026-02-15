@@ -73,9 +73,9 @@ export default function Navbar() {
 
   const [themeMode, setThemeMode] = useState(() => {
     try {
-      return localStorage.getItem("themeMode") || "auto";
+      return localStorage.getItem("themeMode") || "light";
     } catch {
-      return "auto";
+      return "light";
     }
   });
   const [resolvedTheme, setResolvedTheme] = useState("light");
@@ -200,7 +200,8 @@ export default function Navbar() {
 
   const isLightActive = themeMode === "light" || (themeMode === "auto" && resolvedTheme === "light");
   const isDarkActive = themeMode === "dark" || (themeMode === "auto" && resolvedTheme === "dark");
-  const showFloatingToggle = !isDesktopViewport || isDesktopSidebarHidden;
+  const showFloatingToggle = isDesktopViewport ? isDesktopSidebarHidden : !isMobileOpen;
+  const brandLogoSrc = isDark ? "/images/logo-main-white.webp" : "/images/logo-main-black.webp";
 
   async function handlePresenceChange(nextStatus) {
     if (presenceSaving || currentPresence === nextStatus) return;
@@ -368,15 +369,18 @@ export default function Navbar() {
         <div className="app-sidebar-inner">
           <header className="app-sidebar-brand-row">
             <div className="app-sidebar-brand-wrap">
-              <span className="app-sidebar-brand-dot" />
+              <img
+                src={brandLogoSrc}
+                alt=""
+                className="app-sidebar-brand-logo"
+                aria-hidden="true"
+              />
               <span className="app-sidebar-brand-text" style={{ color: palette.brand }}>
-                Eval Portal
+                <span className="app-sidebar-brand-line app-sidebar-brand-line-top">Evaluation</span>
+                <span className="app-sidebar-brand-line app-sidebar-brand-line-bottom">Portal</span>
               </span>
             </div>
             <div className="app-sidebar-head-right">
-              <span className="app-sidebar-role-chip" style={{ color: palette.muted }}>
-                {String(user?.role || "USER").toLowerCase()}
-              </span>
               <button
                 type="button"
                 aria-label="Hide sidebar"

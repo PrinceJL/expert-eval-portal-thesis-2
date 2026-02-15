@@ -596,34 +596,62 @@ body,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
 }
 
 .app-sidebar-head-right {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .app-sidebar-brand-wrap {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
+  position: relative;
+  display: block;
+  flex: 1;
   min-width: 0;
+  height: 32px;
+  max-width: calc(100% - 34px);
 }
 
-.app-sidebar-brand-dot {
-  width: 11px;
-  height: 11px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #4f8dff, #7a5cff);
-  box-shadow: 0 0 0 4px rgba(79, 141, 255, 0.14);
+.app-sidebar-brand-logo {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 68px;
+  height: 24px;
+  border-radius: 0;
+  object-fit: cover;
+  object-position: center;
+  transform: translateY(-50%);
+  flex-shrink: 0;
 }
 
 .app-sidebar-brand-text {
-  font-size: 1.42rem;
-  font-weight: 700;
-  line-height: 1;
+  position: absolute;
+  left: 62.5px;
+  top: 4.5px;
+  right: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.075em;
+  line-height: 0.98;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-sidebar-brand-line {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .app-sidebar-role-chip {
