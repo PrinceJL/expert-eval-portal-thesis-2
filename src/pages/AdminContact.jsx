@@ -130,22 +130,8 @@ export default function AdminContact() {
                 <div className="space-y-4">
                     <h2 className="text-xl font-semibold">Current Contacts</h2>
                     {loading ? (
-                        <div className="grid gap-4">
-                            {Array.from({ length: 4 }).map((_, idx) => (
-                                <div key={`admin-contact-skeleton-${idx}`} className="card card-side bg-base-100 shadow-xl border border-base-200">
-                                    <span className="app-skeleton h-32 w-32 rounded-none rounded-l-2xl" />
-                                    <div className="card-body p-4">
-                                        <span className="app-skeleton h-7 w-48" />
-                                        <span className="app-skeleton h-4 w-full" />
-                                        <span className="app-skeleton h-4 w-4/5" />
-                                        <div className="mt-2 flex gap-2 justify-end">
-                                            <span className="app-skeleton h-8 w-16 rounded-lg" />
-                                            <span className="app-skeleton h-8 w-16 rounded-lg" />
-                                            <span className="app-skeleton h-8 w-16 rounded-lg" />
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
+                        <div className="modern-loader-wrap py-4">
+                            <span className="modern-loader modern-loader-lg" role="status" aria-label="Loading contacts"></span>
                         </div>
                     ) : (
                         <div className="grid gap-4">

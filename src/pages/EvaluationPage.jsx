@@ -20,21 +20,10 @@ export default function EvaluationPage() {
 
   if (!assignment) {
     return (
-      <div className="flex h-screen bg-base-100 font-sans">
-        <div className="flex-1 overflow-y-auto p-8">
-          <div className="max-w-5xl mx-auto space-y-6">
-            <div className="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-xl">
-              <span className="app-skeleton h-9 w-2/3" />
-              <span className="app-skeleton mt-3 h-5 w-1/2" />
-              <span className="app-skeleton mt-6 h-36 w-full rounded-xl" />
-            </div>
-            <div className="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-xl">
-              <span className="app-skeleton h-8 w-56" />
-              <span className="app-skeleton mt-4 h-12 w-full rounded-lg" />
-              <span className="app-skeleton mt-3 h-12 w-full rounded-lg" />
-              <span className="app-skeleton mt-3 h-12 w-full rounded-lg" />
-            </div>
-          </div>
+      <div className="flex items-center justify-center h-screen bg-base-200">
+        <div className="modern-loader-wrap">
+          <span className="modern-loader modern-loader-lg" role="status" aria-label="Loading evaluation"></span>
+          <span className="text-lg font-semibold">Loading evaluation...</span>
         </div>
       </div>
     );

@@ -311,51 +311,8 @@ export default function Messaging() {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-4 flex flex-col">
-        <div className="mb-4">
-          <span className="app-skeleton h-9 w-44" />
-          <span className="app-skeleton mt-2 h-5 w-56" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6 min-h-[68vh] bg-base-200 rounded-xl border border-base-300 shadow-2xl overflow-hidden">
-          <div className="flex flex-col border-r border-base-200 bg-base-200/30">
-            <div className="p-4 border-b border-base-200 bg-base-100">
-              <span className="app-skeleton h-7 w-24" />
-            </div>
-            <div className="overflow-y-auto flex-1 p-3 space-y-3">
-              {Array.from({ length: 6 }).map((_, idx) => (
-                <div key={`message-contact-skeleton-${idx}`} className="rounded-lg border border-base-300 bg-base-100/70 p-3 flex items-center gap-3">
-                  <span className="app-skeleton app-skeleton-circle h-10 w-10" />
-                  <div className="flex-1 min-w-0">
-                    <span className="app-skeleton h-5 w-28" />
-                    <span className="app-skeleton mt-2 h-4 w-40" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-col min-h-0 bg-base-100 relative">
-            <div className="p-4 border-b border-base-200 bg-base-100 flex items-center gap-3">
-              <span className="app-skeleton app-skeleton-circle h-10 w-10" />
-              <div>
-                <span className="app-skeleton h-5 w-24" />
-                <span className="app-skeleton mt-2 h-4 w-40" />
-              </div>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-base-200/10">
-              {Array.from({ length: 5 }).map((_, idx) => (
-                <div key={`message-bubble-skeleton-${idx}`} className={`flex ${idx % 2 === 0 ? 'justify-start' : 'justify-end'}`}>
-                  <span className={`app-skeleton h-14 rounded-2xl ${idx % 2 === 0 ? 'w-56' : 'w-44'}`} />
-                </div>
-              ))}
-            </div>
-            <div className="p-4 border-t border-base-200 bg-base-100 flex items-end gap-2">
-              <span className="app-skeleton app-skeleton-circle h-8 w-8" />
-              <span className="app-skeleton h-11 flex-1 rounded-xl" />
-              <span className="app-skeleton app-skeleton-circle h-10 w-10" />
-            </div>
-          </div>
-        </div>
+      <div className="flex justify-center items-center py-16">
+        <span className="modern-loader modern-loader-lg" role="status" aria-label="Loading messages"></span>
       </div>
     );
   }

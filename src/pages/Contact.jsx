@@ -22,24 +22,8 @@ export default function Contact() {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6 space-y-8">
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <span className="app-skeleton h-10 w-52 mx-auto" />
-          <span className="app-skeleton h-5 w-72 max-w-full mx-auto mt-4" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {Array.from({ length: 6 }).map((_, idx) => (
-            <div key={`contact-skeleton-${idx}`} className="card bg-base-100 shadow-xl border border-base-200">
-              <span className="app-skeleton h-64 w-full rounded-t-2xl rounded-b-none" />
-              <div className="card-body items-center text-center">
-                <span className="app-skeleton h-8 w-40" />
-                <span className="app-skeleton h-4 w-56 max-w-full" />
-                <span className="app-skeleton h-4 w-44" />
-                <span className="app-skeleton h-10 w-32 rounded-lg mt-3" />
-              </div>
-            </div>
-          ))}
-        </div>
+      <div className="p-8 text-center">
+        <span className="modern-loader modern-loader-lg" role="status" aria-label="Loading contacts"></span>
       </div>
     );
   }

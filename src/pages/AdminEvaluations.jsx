@@ -368,38 +368,10 @@ export default function AdminEvaluations() {
         )}
 
         {loading && !evaluations.length ? (
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {Array.from({ length: 3 }).map((_, idx) => (
-                <div key={`admin-eval-skeleton-card-${idx}`} className="card bg-base-100 shadow-xl border border-base-200">
-                  <div className="card-body">
-                    <span className="app-skeleton h-8 w-40" />
-                    <span className="app-skeleton h-4 w-full" />
-                    <span className="app-skeleton h-4 w-4/5" />
-                    <span className="app-skeleton h-10 w-full rounded-lg" />
-                    <span className="app-skeleton h-10 w-full rounded-lg" />
-                    <span className="app-skeleton h-10 w-1/2 rounded-lg" />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              {Array.from({ length: 2 }).map((_, idx) => (
-                <div key={`admin-eval-skeleton-table-${idx}`} className="card bg-base-100 shadow-xl border border-base-200">
-                  <div className="card-body">
-                    <div className="flex items-center justify-between">
-                      <span className="app-skeleton h-7 w-36" />
-                      <span className="app-skeleton h-5 w-20" />
-                    </div>
-                    <span className="app-skeleton h-10 w-full rounded-lg" />
-                    <span className="app-skeleton h-10 w-full rounded-lg" />
-                    <span className="app-skeleton h-10 w-full rounded-lg" />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-center py-2">
-              <span className="modern-loader modern-loader-sm" role="status" aria-label="Loading evaluation dashboard"></span>
+          <div className="flex justify-center py-20">
+            <div className="modern-loader-wrap">
+              <span className="modern-loader modern-loader-lg" role="status" aria-label="Loading evaluation dashboard"></span>
+              <span className="text-sm font-medium">Loading dashboard...</span>
             </div>
           </div>
         ) : (

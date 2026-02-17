@@ -137,57 +137,6 @@ body,
   }
 }
 
-.app-skeleton {
-  position: relative;
-  display: block;
-  overflow: hidden;
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(226, 232, 240, 0.8) 0%, rgba(218, 225, 236, 0.74) 100%);
-}
-
-.app-skeleton::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  transform: translateX(-100%);
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.66) 48%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  animation: app-skeleton-shimmer 1.25s ease-in-out infinite;
-}
-
-.app-skeleton-circle {
-  border-radius: 999px;
-}
-
-[data-theme="dark"] .app-skeleton {
-  background: linear-gradient(180deg, rgba(39, 48, 63, 0.72) 0%, rgba(31, 39, 52, 0.76) 100%);
-}
-
-[data-theme="dark"] .app-skeleton::after {
-  background: linear-gradient(
-    90deg,
-    rgba(148, 163, 184, 0) 0%,
-    rgba(148, 163, 184, 0.18) 50%,
-    rgba(148, 163, 184, 0) 100%
-  );
-}
-
-@keyframes app-skeleton-shimmer {
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .app-skeleton::after {
-    animation: none;
-  }
-}
-
 .app-route-stage {
   animation: app-route-enter 165ms cubic-bezier(0.2, 0.72, 0.2, 1);
   will-change: transform;
