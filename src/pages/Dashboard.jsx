@@ -12,6 +12,106 @@ import EvaluationTable from "../components/EvaluationTable";
 import dimensionsData from "../data/mockD.json";
 import evaluationsData from "../data/mock.json";
 
+function AdminDashboardSkeleton() {
+    return (
+        <div className="admin-dashboard-shell min-h-screen w-full bg-base-100 px-4 py-6 sm:px-6 sm:py-8">
+            <div className="mx-auto w-full max-w-[1240px] space-y-6">
+                <div className="space-y-2">
+                    <span className="app-skeleton h-10 w-64" />
+                    <span className="app-skeleton h-5 w-56" />
+                </div>
+
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                    {Array.from({ length: 2 }).map((_, idx) => (
+                        <div key={`admin-skeleton-card-${idx}`} className="rounded-2xl border border-base-300/70 bg-base-100/70 p-5 shadow-xl">
+                            <span className="app-skeleton mb-5 h-8 w-44" />
+                            <div className="space-y-3">
+                                <span className="app-skeleton h-12 w-full rounded-xl" />
+                                <span className="app-skeleton h-12 w-full rounded-xl" />
+                                {idx === 1 ? <span className="app-skeleton h-12 w-full rounded-xl" /> : null}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="rounded-2xl border border-base-300/70 bg-base-100/70 p-5 shadow-xl">
+                    <span className="app-skeleton mb-5 h-8 w-52" />
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                        <span className="app-skeleton app-skeleton-circle h-20 w-20 shrink-0" />
+                        <div className="flex-1 space-y-2">
+                            <span className="app-skeleton h-6 w-64" />
+                            <span className="app-skeleton h-4 w-40" />
+                            <span className="app-skeleton h-4 w-56" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function ExpertDashboardSkeleton() {
+    return (
+        <div className="min-h-screen w-full bg-base-100 px-4 py-6 sm:px-6 sm:py-8">
+            <div className="mx-auto w-full max-w-[1240px] space-y-6 sm:space-y-8">
+                <section className="rounded-2xl border border-base-300/80 bg-base-100 p-5 shadow-xl sm:p-6">
+                    <div className="space-y-2">
+                        <span className="app-skeleton h-10 w-72" />
+                        <span className="app-skeleton h-5 w-80 max-w-full" />
+                    </div>
+                    <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+                        {Array.from({ length: 4 }).map((_, idx) => (
+                            <div key={`expert-stat-skeleton-${idx}`} className="rounded-xl border border-base-300/70 bg-base-200/40 px-4 py-3">
+                                <span className="app-skeleton h-4 w-16" />
+                                <span className="app-skeleton mt-2 h-8 w-12" />
+                            </div>
+                        ))}
+                    </div>
+                </section>
+
+                <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+                    <div className="rounded-2xl border border-base-300/80 bg-base-100/70 p-4 shadow-xl sm:p-5">
+                        <div className="flex items-center justify-between gap-3">
+                            <span className="app-skeleton h-8 w-56" />
+                            <span className="app-skeleton h-4 w-24" />
+                        </div>
+                        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                            {Array.from({ length: 6 }).map((_, idx) => (
+                                <span key={`expert-dimension-skeleton-${idx}`} className="app-skeleton h-28 w-full rounded-xl" />
+                            ))}
+                        </div>
+                    </div>
+
+                    <aside className="rounded-2xl border border-base-300/80 bg-base-100/70 p-5 shadow-xl">
+                        <span className="app-skeleton h-7 w-48" />
+                        <span className="app-skeleton mt-2 h-4 w-40" />
+                        <div className="mx-auto mt-5 flex h-44 w-44 items-center justify-center">
+                            <span className="app-skeleton app-skeleton-circle h-40 w-40" />
+                        </div>
+                        <div className="mt-5 space-y-2">
+                            <span className="app-skeleton h-10 w-full rounded-lg" />
+                            <span className="app-skeleton h-10 w-full rounded-lg" />
+                            <span className="app-skeleton h-10 w-full rounded-lg" />
+                        </div>
+                    </aside>
+                </section>
+
+                <section className="space-y-3">
+                    <div className="flex items-center justify-between">
+                        <span className="app-skeleton h-9 w-48" />
+                        <span className="app-skeleton h-5 w-28" />
+                    </div>
+                    <div className="rounded-2xl border border-base-300/70 bg-base-100 p-4 shadow-xl">
+                        <span className="app-skeleton h-10 w-full rounded-lg" />
+                        <span className="app-skeleton mt-3 h-10 w-full rounded-lg" />
+                        <span className="app-skeleton mt-3 h-10 w-full rounded-lg" />
+                    </div>
+                </section>
+            </div>
+        </div>
+    );
+}
+
 export default function Dashboard() {
     const { user } = useAuth();
 
@@ -22,6 +122,7 @@ export default function Dashboard() {
     // Expert State
     const [dimensions, setDimensions] = useState([]);
     const [evaluations, setEvaluations] = useState([]);
+    const [dashboardLoading, setDashboardLoading] = useState(true);
 
     // Mock performance (Expert)
     const userName = user?.username || "Guest";
@@ -33,15 +134,37 @@ export default function Dashboard() {
     const isAdmin = user?.role === 'ADMIN' || user?.role === 'RESEARCHER';
 
     useEffect(() => {
-        if (isAdmin) {
-            // Load Admin Stats
-            apiFetch('/admin/stats').then(setAdminStats).catch(console.error);
-            apiFetch('/system/health').then(setSystemHealth).catch(console.error);
-        } else {
-            // Load Expert Stats
-            setDimensions(dimensionsData);
-            setEvaluations(evaluationsData);
+        let cancelled = false;
+
+        async function loadDashboard() {
+            setDashboardLoading(true);
+            try {
+                if (isAdmin) {
+                    const [stats, health] = await Promise.all([
+                        apiFetch('/admin/stats'),
+                        apiFetch('/system/health')
+                    ]);
+                    if (cancelled) return;
+                    setAdminStats(stats);
+                    setSystemHealth(health);
+                } else {
+                    if (cancelled) return;
+                    setDimensions(dimensionsData);
+                    setEvaluations(evaluationsData);
+                }
+            } catch (err) {
+                console.error(err);
+            } finally {
+                if (!cancelled) {
+                    setDashboardLoading(false);
+                }
+            }
         }
+
+        loadDashboard();
+        return () => {
+            cancelled = true;
+        };
     }, [isAdmin]);
 
     const completedCount = useMemo(
@@ -73,6 +196,10 @@ export default function Dashboard() {
 
         return next ? next.toLocaleDateString() : "No pending deadlines";
     }, [evaluations]);
+
+    if (dashboardLoading) {
+        return isAdmin ? <AdminDashboardSkeleton /> : <ExpertDashboardSkeleton />;
+    }
 
     if (isAdmin) {
         return (

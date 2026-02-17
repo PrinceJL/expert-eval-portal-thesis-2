@@ -31,10 +31,26 @@ export default function EvaluationList() {
 
   if (loading) {
     return (
-      <div className="p-8">
-        <div className="modern-loader-wrap">
-          <span className="modern-loader modern-loader-lg" role="status" aria-label="Loading evaluations"></span>
-          <span className="text-sm font-medium">Loading evaluations...</span>
+      <div className="p-8 space-y-6">
+        <div className="card bg-base-200">
+          <div className="card-body">
+            <span className="app-skeleton h-9 w-64" />
+            <div className="flex gap-12 mt-2">
+              <div className="space-y-2">
+                <span className="app-skeleton h-5 w-28" />
+                <span className="app-skeleton h-5 w-44" />
+              </div>
+              <div className="space-y-2">
+                <span className="app-skeleton h-5 w-24" />
+                <span className="app-skeleton h-5 w-36" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="overflow-x-auto rounded-2xl border border-base-300 bg-base-100 p-4 shadow-xl">
+          <span className="app-skeleton h-10 w-full rounded-lg" />
+          <span className="app-skeleton mt-3 h-10 w-full rounded-lg" />
+          <span className="app-skeleton mt-3 h-10 w-full rounded-lg" />
         </div>
       </div>
     );

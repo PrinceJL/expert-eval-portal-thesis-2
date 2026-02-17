@@ -319,10 +319,36 @@ export default function AdminUsers() {
         </div>
 
         {loading && !users.length ? (
-          <div className="flex justify-center py-20">
-            <div className="modern-loader-wrap">
-              <span className="modern-loader modern-loader-lg" role="status" aria-label="Loading users"></span>
-              <span className="text-sm font-medium">Loading users...</span>
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+            <div className="xl:col-span-4 card bg-base-100 shadow-xl border border-base-300">
+              <div className="card-body space-y-4">
+                <span className="app-skeleton h-8 w-32" />
+                <span className="app-skeleton h-11 w-full rounded-lg" />
+                <span className="app-skeleton h-11 w-full rounded-lg" />
+                <span className="app-skeleton h-11 w-full rounded-lg" />
+                <span className="app-skeleton h-11 w-full rounded-lg" />
+                <span className="app-skeleton h-11 w-full rounded-lg" />
+              </div>
+            </div>
+
+            <div className="xl:col-span-8 card bg-base-100 shadow-xl border border-base-300">
+              <div className="card-body space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="app-skeleton h-8 w-32" />
+                  <span className="app-skeleton h-6 w-20" />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <span className="app-skeleton h-11 w-full rounded-lg" />
+                  <span className="app-skeleton h-11 w-full rounded-lg" />
+                  <span className="app-skeleton h-11 w-full rounded-lg" />
+                </div>
+                <span className="app-skeleton h-12 w-full rounded-lg" />
+                <span className="app-skeleton h-12 w-full rounded-lg" />
+                <span className="app-skeleton h-12 w-full rounded-lg" />
+              </div>
+            </div>
+            <div className="xl:col-span-12 flex justify-center pb-2">
+              <span className="modern-loader modern-loader-sm" role="status" aria-label="Loading users"></span>
             </div>
           </div>
         ) : (
