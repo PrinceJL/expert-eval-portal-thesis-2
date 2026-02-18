@@ -18,6 +18,17 @@ const { sql } = require("./models/index");
 let isConnected = false;
 let connectionPromise = null;
 
+const ensureSqlSchemaCompatibility = async () => {
+    // Keep production resilient when a DB was created before new columns were added.
+    // These are idempotent in Postgres.
+    await sql.sequelize.query(
+        'ALTER TABLE IF EXISTS "users" ADD COLUMN IF NOT EXISTS "lastActiveAt" TIMESTAMPTZ;'
+    );
+    await sql.sequelize.query(
+        'ALTER TABLE IF EXISTS "users" ADD COLUMN IF NOT EXISTS "isActive" BOOLEAN DEFAULT TRUE;'
+    );
+};
+
 const connectDB = async () => {
     if (isConnected) {
         return;
@@ -41,6 +52,7 @@ const connectDB = async () => {
             );
 
             await Promise.race([authPromise, timeoutPromise]);
+            await ensureSqlSchemaCompatibility();
             console.log("Postgres connected. Database connections established");
             isConnected = true;
         } catch (error) {
