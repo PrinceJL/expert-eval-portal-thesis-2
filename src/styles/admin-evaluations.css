@@ -1,0 +1,421 @@
+/* Evaluation Management visual rework (tokenized for light/dark parity) */
+.admin-evaluations-shell {
+  --ae-card-radius: 16px;
+  --ae-control-radius: 12px;
+  --ae-item-radius: 10px;
+  --ae-text: #0f172a;
+  --ae-header-border: #cfd8e6;
+  --ae-card-border: #d3dbea;
+  --ae-card-bg: #f7f9fc;
+  --ae-card-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+  --ae-card-hover-shadow: 0 14px 26px rgba(15, 23, 42, 0.12);
+  --ae-card-title: #111827;
+  --ae-icon-upload: #6366f1;
+  --ae-icon-dimension: #db2777;
+  --ae-icon-assign: #0f9f93;
+  --ae-division: #d4ddea;
+  --ae-label: #334155;
+  --ae-field-border: #8ea0b8;
+  --ae-field-bg: #ffffff;
+  --ae-field-text: #0f172a;
+  --ae-field-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  --ae-field-placeholder: #6f7f95;
+  --ae-field-hover-border: #7289a9;
+  --ae-field-focus-border: #3b5677;
+  --ae-field-focus-ring: 0 0 0 3px rgba(59, 86, 119, 0.18);
+  --ae-textarea-border: #9aacc4;
+  --ae-textarea-bg: #ffffff;
+  --ae-textarea-shadow: inset 0 0 0 1px rgba(220, 229, 241, 0.85);
+  --ae-textarea-focus-border: #3f5f89;
+  --ae-textarea-focus-shadow: 0 0 0 3px rgba(63, 95, 137, 0.16), inset 0 0 0 1px rgba(194, 208, 227, 0.75);
+  --ae-select-caret: #425570;
+  --ae-option-text: #0f172a;
+  --ae-option-bg: #ffffff;
+  --ae-deadline-note: #5b6d84;
+  --ae-datetime-edit: #1f2b3d;
+  --ae-calendar-indicator-opacity: 0.72;
+  --ae-calendar-indicator-filter: none;
+  --ae-tabs-bg: #ebf0f7;
+  --ae-tabs-border: #d0d9e8;
+  --ae-tab-text: #4b5563;
+  --ae-tab-active-text: #0f172a;
+  --ae-tab-active-bg: #ffffff;
+  --ae-tab-active-shadow: inset 0 0 0 1px #c6d3e6;
+  --ae-muted-surface: #edf2f8;
+  --ae-scoring-list-border: #b8c5d8;
+  --ae-scoring-list-bg: #eef3f9;
+  --ae-scoring-item-border: #d2dbe8;
+  --ae-scoring-item-bg: #ffffff;
+  --ae-scoring-item-hover-border: #b8c7db;
+  --ae-scoring-item-hover-bg: #f8fbff;
+  --ae-scoring-item-selected-border: #93a9c8;
+  --ae-scoring-item-selected-bg: #f1f6fd;
+  --ae-table-border: #d6deea;
+  --ae-table-head-text: #4b5563;
+  --ae-table-row-hover-bg: #edf3fa;
+  --ae-badge-border: #c6d1e0;
+  --ae-badge-bg: #f3f7fc;
+  --ae-badge-text: #475569;
+  --ae-btn-border: #0f172a;
+  --ae-btn-bg: linear-gradient(180deg, #1f2937 0%, #0f172a 100%);
+  --ae-btn-text: #f8fafc;
+  --ae-btn-shadow: 0 8px 16px rgba(15, 23, 42, 0.22);
+  --ae-btn-hover-border: #111827;
+  --ae-btn-hover-bg: linear-gradient(180deg, #111827 0%, #020617 100%);
+  --ae-btn-ghost-border: #c3cfde;
+  --ae-btn-ghost-bg: #f7f9fc;
+  --ae-btn-ghost-text: #334155;
+  --ae-btn-ghost-hover-border: #abbad0;
+  --ae-btn-ghost-hover-bg: #eff4fb;
+  --ae-score-border: #8ea2bc;
+  --ae-score-bg: #ffffff;
+  --ae-score-dot: #2f4d75;
+  --ae-score-checked-border: #2f4d75;
+  --ae-score-checked-bg: #e9f0fa;
+  --ae-score-focus: 0 0 0 3px rgba(63, 95, 137, 0.18);
+}
+
+[data-theme="dark"] .admin-evaluations-shell {
+  --ae-text: #e7eef8;
+  --ae-header-border: #1f2a38;
+  --ae-card-border: #253244;
+  --ae-card-bg: #0b1118;
+  --ae-card-shadow: 0 12px 24px rgba(0, 0, 0, 0.38);
+  --ae-card-hover-shadow: 0 16px 30px rgba(0, 0, 0, 0.48);
+  --ae-card-title: #eef4fc;
+  --ae-icon-upload: #7f8dff;
+  --ae-icon-dimension: #ff4fa0;
+  --ae-icon-assign: #34d8cb;
+  --ae-division: #202e40;
+  --ae-label: #b6c3d6;
+  --ae-field-border: #3a4c64;
+  --ae-field-bg: #111a24;
+  --ae-field-text: #e8eff8;
+  --ae-field-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  --ae-field-placeholder: #8192a9;
+  --ae-field-hover-border: #587092;
+  --ae-field-focus-border: #7fa2cf;
+  --ae-field-focus-ring: 0 0 0 3px rgba(109, 150, 204, 0.22);
+  --ae-textarea-border: #4f6382;
+  --ae-textarea-bg: #111a24;
+  --ae-textarea-shadow: inset 0 0 0 1px rgba(139, 160, 189, 0.16);
+  --ae-textarea-focus-border: #7fa2cf;
+  --ae-textarea-focus-shadow: 0 0 0 3px rgba(109, 150, 204, 0.2), inset 0 0 0 1px rgba(154, 179, 211, 0.24);
+  --ae-select-caret: #9fb1c8;
+  --ae-option-text: #e8eff8;
+  --ae-option-bg: #111a24;
+  --ae-deadline-note: #8093ae;
+  --ae-datetime-edit: #dbe7f7;
+  --ae-calendar-indicator-opacity: 0.9;
+  --ae-calendar-indicator-filter: invert(86%) sepia(9%) saturate(356%) hue-rotate(178deg) brightness(102%) contrast(96%);
+  --ae-tabs-bg: #0f1723;
+  --ae-tabs-border: #2b3a4e;
+  --ae-tab-text: #98a9c3;
+  --ae-tab-active-text: #f6faff;
+  --ae-tab-active-bg: #192434;
+  --ae-tab-active-shadow: inset 0 0 0 1px #3a4f69;
+  --ae-muted-surface: #0f1723;
+  --ae-scoring-list-border: #33475f;
+  --ae-scoring-list-bg: #0f1723;
+  --ae-scoring-item-border: #30445b;
+  --ae-scoring-item-bg: #121d2b;
+  --ae-scoring-item-hover-border: #476282;
+  --ae-scoring-item-hover-bg: #182639;
+  --ae-scoring-item-selected-border: #5d81af;
+  --ae-scoring-item-selected-bg: #1b2d44;
+  --ae-table-border: #24374e;
+  --ae-table-head-text: #9caec8;
+  --ae-table-row-hover-bg: #121f30;
+  --ae-badge-border: #3b4f6a;
+  --ae-badge-bg: #172437;
+  --ae-badge-text: #b6c6dd;
+  --ae-btn-border: #324860;
+  --ae-btn-bg: linear-gradient(180deg, #1b2737 0%, #111a26 100%);
+  --ae-btn-text: #ecf3ff;
+  --ae-btn-shadow: 0 8px 16px rgba(0, 0, 0, 0.34);
+  --ae-btn-hover-border: #3e5a78;
+  --ae-btn-hover-bg: linear-gradient(180deg, #202f45 0%, #162133 100%);
+  --ae-btn-ghost-border: #3a4d66;
+  --ae-btn-ghost-bg: #111b29;
+  --ae-btn-ghost-text: #bfcee2;
+  --ae-btn-ghost-hover-border: #506888;
+  --ae-btn-ghost-hover-bg: #17273b;
+  --ae-score-border: #7289a9;
+  --ae-score-bg: #0f1723;
+  --ae-score-dot: #bed1ec;
+  --ae-score-checked-border: #93b4df;
+  --ae-score-checked-bg: #1c2d44;
+  --ae-score-focus: 0 0 0 3px rgba(122, 162, 212, 0.28);
+}
+
+.admin-evaluations-shell {
+  color: var(--ae-text);
+}
+
+.admin-evaluations-shell .card {
+  border-radius: var(--ae-card-radius);
+  border-color: var(--ae-card-border) !important;
+  background: var(--ae-card-bg) !important;
+  box-shadow: var(--ae-card-shadow) !important;
+}
+
+.admin-evaluations-shell .admin-eval-header {
+  border-bottom-color: var(--ae-header-border) !important;
+}
+
+.admin-evaluations-shell .admin-eval-card:hover {
+  box-shadow: var(--ae-card-hover-shadow) !important;
+  transform: translateY(-1px);
+}
+
+.admin-evaluations-shell .card-title {
+  color: var(--ae-card-title) !important;
+  font-size: 1.03rem;
+  letter-spacing: 0.002em;
+}
+
+.admin-evaluations-shell .admin-eval-card-upload .card-title svg {
+  color: var(--ae-icon-upload);
+}
+
+.admin-evaluations-shell .admin-eval-card-dimension .card-title svg {
+  color: var(--ae-icon-dimension);
+}
+
+.admin-evaluations-shell .admin-eval-card-assign .card-title svg {
+  color: var(--ae-icon-assign);
+}
+
+.admin-evaluations-shell .division {
+  background: var(--ae-division) !important;
+}
+
+.admin-evaluations-shell .label-text {
+  color: var(--ae-label) !important;
+  font-weight: 600;
+}
+
+.admin-evaluations-shell .admin-eval-field {
+  border: 1.6px solid var(--ae-field-border) !important;
+  background: var(--ae-field-bg) !important;
+  color: var(--ae-field-text) !important;
+  box-shadow: var(--ae-field-shadow);
+  min-height: 44px;
+}
+
+.admin-evaluations-shell .admin-eval-json-textarea,
+.admin-evaluations-shell .admin-eval-criteria-textarea {
+  border: 1.5px solid var(--ae-textarea-border) !important;
+  background: var(--ae-textarea-bg) !important;
+  box-shadow: var(--ae-textarea-shadow);
+}
+
+.admin-evaluations-shell .admin-eval-field::placeholder {
+  color: var(--ae-field-placeholder) !important;
+}
+
+.admin-evaluations-shell .admin-eval-field:hover {
+  border-color: var(--ae-field-hover-border) !important;
+}
+
+.admin-evaluations-shell .admin-eval-field:focus,
+.admin-evaluations-shell .admin-eval-field:focus-visible {
+  outline: none !important;
+  border-color: var(--ae-field-focus-border) !important;
+  box-shadow: var(--ae-field-focus-ring) !important;
+}
+
+.admin-evaluations-shell .admin-eval-json-textarea:focus,
+.admin-evaluations-shell .admin-eval-json-textarea:focus-visible,
+.admin-evaluations-shell .admin-eval-criteria-textarea:focus,
+.admin-evaluations-shell .admin-eval-criteria-textarea:focus-visible {
+  border-color: var(--ae-textarea-focus-border) !important;
+  box-shadow: var(--ae-textarea-focus-shadow) !important;
+}
+
+.admin-evaluations-shell .admin-eval-select-wrap {
+  position: relative;
+}
+
+.admin-evaluations-shell .admin-eval-select {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  background-image: none !important;
+  padding-right: 2.45rem !important;
+}
+
+.admin-evaluations-shell .admin-eval-select::-ms-expand {
+  display: none;
+}
+
+.admin-evaluations-shell .admin-eval-select-caret {
+  position: absolute;
+  right: 0.8rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  line-height: 0;
+  transition: none;
+  color: var(--ae-select-caret);
+  opacity: 0.96;
+}
+
+.admin-evaluations-shell .admin-eval-select option {
+  color: var(--ae-option-text);
+  background: var(--ae-option-bg);
+}
+
+.admin-evaluations-shell .admin-eval-deadline-date,
+.admin-evaluations-shell .admin-eval-deadline-time {
+  min-height: 44px;
+}
+
+.admin-evaluations-shell .admin-eval-deadline-note {
+  color: var(--ae-deadline-note) !important;
+}
+
+.admin-evaluations-shell .admin-eval-deadline-date::-webkit-calendar-picker-indicator,
+.admin-evaluations-shell .admin-eval-deadline-time::-webkit-calendar-picker-indicator {
+  opacity: var(--ae-calendar-indicator-opacity);
+  filter: var(--ae-calendar-indicator-filter);
+  cursor: pointer;
+}
+
+.admin-evaluations-shell .admin-eval-deadline-date::-webkit-datetime-edit,
+.admin-evaluations-shell .admin-eval-deadline-time::-webkit-datetime-edit {
+  color: var(--ae-datetime-edit);
+}
+
+.admin-evaluations-shell .tabs-boxed {
+  background: var(--ae-tabs-bg) !important;
+  border: 1px solid var(--ae-tabs-border);
+  border-radius: var(--ae-control-radius);
+}
+
+.admin-evaluations-shell .tabs-boxed .tab {
+  color: var(--ae-tab-text);
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.admin-evaluations-shell .tabs-boxed .tab.tab-active {
+  color: var(--ae-tab-active-text) !important;
+  background: var(--ae-tab-active-bg) !important;
+  box-shadow: var(--ae-tab-active-shadow);
+}
+
+.admin-evaluations-shell .bg-base-200\/30,
+.admin-evaluations-shell .bg-base-200\/50 {
+  background: var(--ae-muted-surface) !important;
+}
+
+.admin-evaluations-shell .admin-eval-scoring-list {
+  border-color: var(--ae-scoring-list-border) !important;
+  background: var(--ae-scoring-list-bg) !important;
+}
+
+.admin-evaluations-shell .admin-eval-scoring-item {
+  border: 1px solid var(--ae-scoring-item-border);
+  background: var(--ae-scoring-item-bg);
+  border-radius: var(--ae-item-radius);
+  margin-bottom: 6px;
+}
+
+.admin-evaluations-shell .admin-eval-scoring-item:hover {
+  border-color: var(--ae-scoring-item-hover-border);
+  background: var(--ae-scoring-item-hover-bg) !important;
+}
+
+.admin-evaluations-shell .admin-eval-scoring-item-selected {
+  border-color: var(--ae-scoring-item-selected-border);
+  background: var(--ae-scoring-item-selected-bg) !important;
+}
+
+.admin-evaluations-shell .table :where(th, td) {
+  border-color: var(--ae-table-border) !important;
+}
+
+.admin-evaluations-shell .table thead th {
+  color: var(--ae-table-head-text);
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-evaluations-shell .table tbody tr:hover {
+  background: var(--ae-table-row-hover-bg);
+}
+
+.admin-evaluations-shell .badge-outline,
+.admin-evaluations-shell .badge-ghost {
+  border-color: var(--ae-badge-border);
+  background: var(--ae-badge-bg);
+  color: var(--ae-badge-text);
+}
+
+.admin-evaluations-shell .btn-primary,
+.admin-evaluations-shell .btn-secondary,
+.admin-evaluations-shell .btn-accent {
+  border: 1px solid var(--ae-btn-border) !important;
+  background: var(--ae-btn-bg) !important;
+  color: var(--ae-btn-text) !important;
+  box-shadow: var(--ae-btn-shadow) !important;
+}
+
+.admin-evaluations-shell .btn-primary:hover,
+.admin-evaluations-shell .btn-secondary:hover,
+.admin-evaluations-shell .btn-accent:hover {
+  border-color: var(--ae-btn-hover-border) !important;
+  background: var(--ae-btn-hover-bg) !important;
+}
+
+.admin-evaluations-shell .btn-ghost {
+  border: 1px solid var(--ae-btn-ghost-border) !important;
+  background: var(--ae-btn-ghost-bg) !important;
+  color: var(--ae-btn-ghost-text) !important;
+}
+
+.admin-evaluations-shell .btn-ghost:hover {
+  border-color: var(--ae-btn-ghost-hover-border) !important;
+  background: var(--ae-btn-ghost-hover-bg) !important;
+}
+
+.admin-evaluations-shell .admin-eval-score-checkbox {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 1.05rem;
+  height: 1.05rem;
+  min-width: 1.05rem;
+  border: 2px solid var(--ae-score-border) !important;
+  border-radius: 9999px !important;
+  background: var(--ae-score-bg) !important;
+  display: inline-grid;
+  place-content: center;
+  transition: border-color 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
+}
+
+.admin-evaluations-shell .admin-eval-score-checkbox::before {
+  content: "";
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 9999px;
+  background: var(--ae-score-dot);
+  transform: scale(0);
+  transition: transform 120ms ease;
+}
+
+.admin-evaluations-shell .admin-eval-score-checkbox:checked {
+  border-color: var(--ae-score-checked-border) !important;
+  background: var(--ae-score-checked-bg) !important;
+}
+
+.admin-evaluations-shell .admin-eval-score-checkbox:checked::before {
+  transform: scale(1);
+}
+
+.admin-evaluations-shell .admin-eval-score-checkbox:focus-visible {
+  outline: none;
+  box-shadow: var(--ae-score-focus);
+}

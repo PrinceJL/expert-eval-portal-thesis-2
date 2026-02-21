@@ -539,25 +539,32 @@ export default function AdminEvaluations() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="form-control">
                         <label className="label"><span className="label-text font-medium">Type</span></label>
-                        <select
-                          className="select select-bordered w-full admin-eval-field admin-eval-select"
-                          value={scoreForm.type}
-                          onChange={(e) => {
-                            const nextType = e.target.value;
-                            setScoreForm((p) => ({
-                              ...p,
-                              type: nextType,
-                              min_range: nextType === 'Boolean' ? 0 : p.min_range,
-                              max_range: nextType === 'Boolean' ? 1 : p.max_range,
-                              criteriaJson: nextType === 'Boolean' && !p.criteriaJson.trim()
-                                ? JSON.stringify(DEFAULT_BOOLEAN_CRITERIA, null, 2)
-                                : p.criteriaJson
-                            }));
-                          }}
-                        >
-                          <option value="Likert">Likert</option>
-                          <option value="Boolean">Boolean</option>
-                        </select>
+                        <div className="admin-eval-select-wrap">
+                          <select
+                            className="select select-bordered w-full admin-eval-field admin-eval-select"
+                            value={scoreForm.type}
+                            onChange={(e) => {
+                              const nextType = e.target.value;
+                              setScoreForm((p) => ({
+                                ...p,
+                                type: nextType,
+                                min_range: nextType === 'Boolean' ? 0 : p.min_range,
+                                max_range: nextType === 'Boolean' ? 1 : p.max_range,
+                                criteriaJson: nextType === 'Boolean' && !p.criteriaJson.trim()
+                                  ? JSON.stringify(DEFAULT_BOOLEAN_CRITERIA, null, 2)
+                                  : p.criteriaJson
+                              }));
+                            }}
+                          >
+                            <option value="Likert">Likert</option>
+                            <option value="Boolean">Boolean</option>
+                          </select>
+                          <span className="admin-eval-select-caret" aria-hidden="true">
+                            <svg viewBox="0 0 20 20" width="14" height="14" fill="none">
+                              <path d="M5 7.5 10 12.5 15 7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </span>
+                        </div>
                       </div>
                       <div className="flex gap-2">
                         <div className="form-control w-full">
@@ -615,21 +622,35 @@ export default function AdminEvaluations() {
                   <form onSubmit={createAssignment} className="space-y-4">
                     <div className="form-control">
                       <label className="label"><span className="label-text font-medium">Select Expert</span></label>
-                      <select className="select select-bordered w-full admin-eval-field admin-eval-select" value={assignForm.user_assigned} onChange={(e) => setAssignForm((p) => ({ ...p, user_assigned: e.target.value }))} required>
-                        <option value="">Choose...</option>
-                        {expertUsers.map((u) => (
-                          <option key={u.id} value={u.id}>{u.username} ({u.group})</option>
-                        ))}
-                      </select>
+                      <div className="admin-eval-select-wrap">
+                        <select className="select select-bordered w-full admin-eval-field admin-eval-select" value={assignForm.user_assigned} onChange={(e) => setAssignForm((p) => ({ ...p, user_assigned: e.target.value }))} required>
+                          <option value="">Choose...</option>
+                          {expertUsers.map((u) => (
+                            <option key={u.id} value={u.id}>{u.username} ({u.group})</option>
+                          ))}
+                        </select>
+                        <span className="admin-eval-select-caret" aria-hidden="true">
+                          <svg viewBox="0 0 20 20" width="14" height="14" fill="none">
+                            <path d="M5 7.5 10 12.5 15 7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </span>
+                      </div>
                     </div>
                     <div className="form-control">
                       <label className="label"><span className="label-text font-medium">Select Evaluation</span></label>
-                      <select className="select select-bordered w-full admin-eval-field admin-eval-select" value={assignForm.evaluation} onChange={(e) => setAssignForm((p) => ({ ...p, evaluation: e.target.value }))} required>
-                        <option value="">Choose...</option>
-                        {evaluations.map((ev) => (
-                          <option key={ev._id} value={ev._id}>{ev.filename} ({ev.items?.length || 0} items)</option>
-                        ))}
-                      </select>
+                      <div className="admin-eval-select-wrap">
+                        <select className="select select-bordered w-full admin-eval-field admin-eval-select" value={assignForm.evaluation} onChange={(e) => setAssignForm((p) => ({ ...p, evaluation: e.target.value }))} required>
+                          <option value="">Choose...</option>
+                          {evaluations.map((ev) => (
+                            <option key={ev._id} value={ev._id}>{ev.filename} ({ev.items?.length || 0} items)</option>
+                          ))}
+                        </select>
+                        <span className="admin-eval-select-caret" aria-hidden="true">
+                          <svg viewBox="0 0 20 20" width="14" height="14" fill="none">
+                            <path d="M5 7.5 10 12.5 15 7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </span>
+                      </div>
                     </div>
 
                     <div className="form-control">

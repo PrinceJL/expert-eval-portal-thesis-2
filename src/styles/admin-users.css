@@ -1,0 +1,343 @@
+/* Admin Users */
+.admin-users-shell {
+  --au-header-border: rgba(148, 163, 184, 0.3);
+  --au-panel-border: rgba(154, 174, 204, 0.35);
+  --au-panel-bg: rgba(255, 255, 255, 0.62);
+  --au-panel-backdrop: blur(14px) saturate(128%);
+  --au-panel-shadow: 0 18px 36px rgba(30, 41, 59, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  --au-table-wrap-border: rgba(148, 163, 184, 0.28);
+  --au-table-wrap-bg: rgba(255, 255, 255, 0.46);
+  --au-table-head-text: rgba(30, 41, 59, 0.72);
+  --au-table-head-border: rgba(148, 163, 184, 0.24);
+  --au-table-row-border: rgba(148, 163, 184, 0.15);
+  --au-table-row-hover-bg: rgba(215, 232, 255, 0.24);
+  --au-label-text: rgba(51, 65, 85, 0.9);
+  --au-input-height: 46px;
+  --au-input-radius: 12px;
+  --au-input-border: #aebed7;
+  --au-input-bg: rgba(255, 255, 255, 0.72);
+  --au-input-text: #0f172a;
+  --au-input-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 1px 0 rgba(148, 163, 184, 0.08);
+  --au-input-placeholder: #66758c;
+  --au-input-hover-border: #86a3ca;
+  --au-input-hover-bg: rgba(255, 255, 255, 0.84);
+  --au-input-focus-border: #4d8fe0;
+  --au-input-focus-shadow: 0 0 0 3px rgba(77, 143, 224, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  --au-option-text: #0f172a;
+  --au-option-bg: #ffffff;
+  --au-btn-ghost-text: #1f2937;
+  --au-btn-ghost-border: rgba(146, 166, 197, 0.64);
+  --au-btn-ghost-bg: rgba(255, 255, 255, 0.64);
+  --au-btn-ghost-hover-border: rgba(124, 150, 188, 0.82);
+  --au-btn-ghost-hover-bg: rgba(248, 251, 255, 0.9);
+  --au-modal-ghost-border: rgba(146, 166, 197, 0.7);
+  --au-modal-ghost-bg: rgba(255, 255, 255, 0.7);
+  --au-btn-primary-border: rgba(41, 100, 237, 0.75);
+  --au-btn-primary-bg: linear-gradient(135deg, #3f9dff 0%, #6677ff 100%);
+  --au-btn-primary-shadow: 0 10px 22px rgba(63, 107, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.24);
+  --au-btn-primary-hover-border: rgba(37, 89, 217, 0.85);
+  --au-btn-primary-hover-bg: linear-gradient(135deg, #3289eb 0%, #5867e0 100%);
+
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      900px 420px at 7% 3%,
+      rgba(131, 189, 255, 0.2) 0%,
+      rgba(230, 198, 255, 0.12) 34%,
+      transparent 68%
+    ),
+    linear-gradient(180deg, #f6f9ff 0%, #eff3fb 56%, #e8edf6 100%);
+}
+
+.admin-users-shell::before,
+.admin-users-shell::after {
+  content: "";
+  position: absolute;
+  inset: -8%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.admin-users-shell::before {
+  background: radial-gradient(
+    700px 320px at 8% 3%,
+    rgba(255, 255, 255, 0.36) 0%,
+    rgba(255, 255, 255, 0.16) 40%,
+    transparent 74%
+  );
+  opacity: 0.52;
+}
+
+.admin-users-shell::after {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.03) 40%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  opacity: 0.5;
+}
+
+.admin-users-content {
+  position: relative;
+  z-index: 1;
+}
+
+.admin-users-header {
+  border-color: var(--au-header-border) !important;
+}
+
+.admin-users-stat,
+.admin-users-panel,
+.admin-password-modal {
+  border: 1px solid var(--au-panel-border) !important;
+  background: var(--au-panel-bg) !important;
+  backdrop-filter: var(--au-panel-backdrop);
+  -webkit-backdrop-filter: var(--au-panel-backdrop);
+  box-shadow: var(--au-panel-shadow);
+}
+
+.admin-users-panel .card-body {
+  padding: 1.35rem;
+}
+
+.admin-users-panel-list .card-body {
+  gap: 1rem;
+}
+
+.admin-users-table-wrap {
+  border-color: var(--au-table-wrap-border) !important;
+  background: var(--au-table-wrap-bg);
+}
+
+.admin-users-shell .table thead th {
+  color: var(--au-table-head-text);
+  font-size: 0.785rem;
+  text-transform: uppercase;
+  letter-spacing: 0.045em;
+  border-bottom-color: var(--au-table-head-border);
+}
+
+.admin-users-shell .table tbody tr {
+  border-bottom-color: var(--au-table-row-border);
+}
+
+.admin-users-shell .table tbody tr:hover {
+  background: var(--au-table-row-hover-bg);
+}
+
+.admin-users-form .label-text,
+.admin-password-modal .label-text {
+  color: var(--au-label-text);
+  font-weight: 600;
+}
+
+.admin-users-form .input,
+.admin-users-form .select,
+.admin-users-toolbar .input,
+.admin-users-toolbar .select,
+.admin-password-modal .input,
+.admin-password-modal .select {
+  width: 100%;
+  min-height: var(--au-input-height);
+  height: var(--au-input-height);
+  border-radius: var(--au-input-radius);
+  border: 1px solid var(--au-input-border);
+  background: var(--au-input-bg);
+  color: var(--au-input-text);
+  padding-left: 14px;
+  padding-right: 14px;
+  line-height: 1.2;
+  box-shadow: var(--au-input-shadow);
+  transition: border-color 170ms ease, box-shadow 170ms ease, background-color 170ms ease, color 170ms ease;
+}
+
+.admin-users-form .select,
+.admin-users-toolbar .select,
+.admin-password-modal .select {
+  -webkit-appearance: menulist;
+  -moz-appearance: menulist;
+  appearance: auto;
+  background-image: none !important;
+  padding-right: 28px;
+}
+
+.admin-users-form .input::placeholder,
+.admin-users-toolbar .input::placeholder,
+.admin-password-modal .input::placeholder {
+  color: var(--au-input-placeholder);
+}
+
+.admin-users-form .input:hover,
+.admin-users-form .select:hover,
+.admin-users-toolbar .input:hover,
+.admin-users-toolbar .select:hover,
+.admin-password-modal .input:hover,
+.admin-password-modal .select:hover {
+  border-color: var(--au-input-hover-border);
+  background-color: var(--au-input-hover-bg);
+}
+
+.admin-users-form .input:focus,
+.admin-users-form .input:focus-visible,
+.admin-users-form .select:focus,
+.admin-users-form .select:focus-visible,
+.admin-users-toolbar .input:focus,
+.admin-users-toolbar .input:focus-visible,
+.admin-users-toolbar .select:focus,
+.admin-users-toolbar .select:focus-visible,
+.admin-password-modal .input:focus,
+.admin-password-modal .input:focus-visible,
+.admin-password-modal .select:focus,
+.admin-password-modal .select:focus-visible {
+  outline: none !important;
+  border-color: var(--au-input-focus-border);
+  box-shadow: var(--au-input-focus-shadow);
+}
+
+.admin-users-form select option,
+.admin-users-toolbar select option,
+.admin-password-modal select option {
+  color: var(--au-option-text);
+  background: var(--au-option-bg);
+}
+
+.admin-users-shell .btn {
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.admin-users-shell .btn-primary {
+  color: #ffffff !important;
+  border: 1px solid var(--au-btn-primary-border) !important;
+  background: var(--au-btn-primary-bg) !important;
+  box-shadow: var(--au-btn-primary-shadow);
+}
+
+.admin-users-shell .btn-primary:hover {
+  border-color: var(--au-btn-primary-hover-border) !important;
+  background: var(--au-btn-primary-hover-bg) !important;
+}
+
+.admin-users-shell .btn-primary:disabled,
+.admin-users-shell .btn-primary[disabled] {
+  opacity: 0.72;
+}
+
+.admin-users-create-btn {
+  min-height: 48px;
+  font-size: 1rem;
+  letter-spacing: 0.01em;
+}
+
+.admin-users-shell .btn-ghost {
+  color: var(--au-btn-ghost-text);
+  border: 1px solid var(--au-btn-ghost-border);
+  background: var(--au-btn-ghost-bg);
+}
+
+.admin-users-shell .btn-ghost:hover {
+  border-color: var(--au-btn-ghost-hover-border);
+  background: var(--au-btn-ghost-hover-bg);
+}
+
+.admin-users-shell .btn.btn-xs {
+  min-height: 31px;
+  padding: 0 10px;
+}
+
+.admin-users-shell .modal-action .btn-ghost {
+  border: 1px solid var(--au-modal-ghost-border);
+  background: var(--au-modal-ghost-bg);
+}
+
+[data-theme="dark"] .admin-users-shell {
+  --au-header-border: rgba(80, 89, 103, 0.4);
+  --au-panel-border: rgba(68, 77, 90, 0.72);
+  --au-panel-bg: #0d1014;
+  --au-panel-backdrop: none;
+  --au-panel-shadow: 0 10px 24px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  --au-table-wrap-border: rgba(68, 77, 90, 0.72);
+  --au-table-wrap-bg: #090c10;
+  --au-table-head-text: rgba(209, 217, 228, 0.8);
+  --au-table-head-border: rgba(78, 88, 103, 0.44);
+  --au-table-row-border: rgba(78, 88, 103, 0.28);
+  --au-table-row-hover-bg: #151a21;
+  --au-label-text: rgba(225, 230, 238, 0.92);
+  --au-input-border: rgba(78, 89, 105, 0.72);
+  --au-input-bg: #0a0d12;
+  --au-input-text: #edf1f7;
+  --au-input-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  --au-input-placeholder: #7f8896;
+  --au-input-hover-border: rgba(98, 109, 125, 0.82);
+  --au-input-hover-bg: #10151c;
+  --au-input-focus-border: #7b879b;
+  --au-input-focus-shadow: 0 0 0 3px rgba(123, 135, 155, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --au-option-text: #e8edf6;
+  --au-option-bg: #0f1319;
+  --au-btn-ghost-text: #e2e7ef;
+  --au-btn-ghost-border: rgba(88, 98, 114, 0.8);
+  --au-btn-ghost-bg: #10151c;
+  --au-btn-ghost-hover-border: rgba(106, 117, 133, 0.88);
+  --au-btn-ghost-hover-bg: #1a2028;
+  --au-modal-ghost-border: rgba(88, 98, 114, 0.8);
+  --au-modal-ghost-bg: #10151c;
+  --au-btn-primary-border: rgba(104, 173, 255, 0.72);
+  --au-btn-primary-bg: linear-gradient(135deg, #2f98ff 0%, #6170ff 100%);
+  --au-btn-primary-shadow: 0 10px 24px rgba(33, 103, 215, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+
+  background: transparent !important;
+}
+
+[data-theme="dark"] .admin-users-shell::before {
+  opacity: 0;
+  animation: none;
+}
+
+[data-theme="dark"] .admin-users-shell::after {
+  opacity: 0;
+  animation: none;
+}
+
+[data-theme="dark"] .admin-users-form .select,
+[data-theme="dark"] .admin-users-toolbar .select,
+[data-theme="dark"] .admin-password-modal .select {
+  color-scheme: dark;
+}
+
+@keyframes adminUsersAuroraFloat {
+  0% {
+    transform: translate3d(-1.5%, -1%, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(1.2%, 1.6%, 0) scale(1.03);
+  }
+  100% {
+    transform: translate3d(-1.5%, -1%, 0) scale(1);
+  }
+}
+
+@keyframes adminUsersGrainShift {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(-2%, 1.5%, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-users-content {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .admin-users-panel .card-body {
+    padding: 1rem;
+  }
+}
