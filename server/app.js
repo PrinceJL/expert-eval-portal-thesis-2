@@ -27,6 +27,36 @@ const ensureSqlSchemaCompatibility = async () => {
     await sql.sequelize.query(
         'ALTER TABLE IF EXISTS "users" ADD COLUMN IF NOT EXISTS "isActive" BOOLEAN DEFAULT TRUE;'
     );
+    await sql.sequelize.query(
+        'ALTER TABLE IF EXISTS "evaluation_assignments" ADD COLUMN IF NOT EXISTS "scoring_ids" JSONB DEFAULT \'[]\'::jsonb;'
+    );
+    await sql.sequelize.query(
+        'ALTER TABLE IF EXISTS "evaluation_assignments" ADD COLUMN IF NOT EXISTS "scoring_snapshot" JSONB DEFAULT \'[]\'::jsonb;'
+    );
+    await sql.sequelize.query(
+        'ALTER TABLE IF EXISTS "evaluation_assignments" ADD COLUMN IF NOT EXISTS "draft_submission" JSONB;'
+    );
+    await sql.sequelize.query(
+        'ALTER TABLE IF EXISTS "evaluation_assignments" ADD COLUMN IF NOT EXISTS "final_submission" JSONB;'
+    );
+    await sql.sequelize.query(
+        'ALTER TABLE IF EXISTS "evaluation_assignments" ADD COLUMN IF NOT EXISTS "final_submitted" BOOLEAN DEFAULT FALSE;'
+    );
+    await sql.sequelize.query(
+        'ALTER TABLE IF EXISTS "evaluation_assignments" ADD COLUMN IF NOT EXISTS "last_draft_saved_at" TIMESTAMPTZ;'
+    );
+    await sql.sequelize.query(
+        'ALTER TABLE IF EXISTS "evaluation_assignments" ADD COLUMN IF NOT EXISTS "submitted_at" TIMESTAMPTZ;'
+    );
+    await sql.sequelize.query(
+        'ALTER TABLE IF EXISTS "evaluation_assignments" ADD COLUMN IF NOT EXISTS "is_locked" BOOLEAN DEFAULT FALSE;'
+    );
+    await sql.sequelize.query(
+        'ALTER TABLE IF EXISTS "evaluation_assignments" ADD COLUMN IF NOT EXISTS "distress_detection" JSONB;'
+    );
+    await sql.sequelize.query(
+        'ALTER TABLE IF EXISTS "evaluation_assignments" ADD COLUMN IF NOT EXISTS "error_severity" JSONB;'
+    );
 };
 
 const connectDB = async () => {

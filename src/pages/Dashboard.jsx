@@ -8,10 +8,6 @@ import { useAuth } from "../auth/AuthContext";
 import StatCard from "../components/StatCard";
 import EvaluationTable from "../components/EvaluationTable";
 
-// Mock data imports
-import dimensionsData from "../data/mockD.json";
-import evaluationsData from "../data/mock.json";
-
 function AdminDashboardSkeleton() {
     return (
         <div className="admin-dashboard-shell min-h-screen w-full bg-base-100 px-4 py-6 sm:px-6 sm:py-8">
@@ -122,14 +118,18 @@ export default function Dashboard() {
     // Expert State
     const [dimensions, setDimensions] = useState([]);
     const [evaluations, setEvaluations] = useState([]);
+    const [modelComparison, setModelComparison] = useState([]);
+    const [performance, setPerformance] = useState({
+        current: 0,
+        goal: 85,
+        max: 100,
+        completionRate: 0,
+        avgScore: 0,
+        modelVersion: "v1.0"
+    });
     const [dashboardLoading, setDashboardLoading] = useState(true);
 
-    // Mock performance (Expert)
     const userName = user?.username || "Guest";
-    const currentPerformance = 72;
-    const goalPerformance = 85;
-    const maxPerformance = 100;
-    const modelVersion = "v1.2.3";
 
     const isAdmin = user?.role === 'ADMIN' || user?.role === 'RESEARCHER';
 
@@ -148,9 +148,19 @@ export default function Dashboard() {
                     setAdminStats(stats);
                     setSystemHealth(health);
                 } else {
+                    const stats = await apiFetch('/expert/stats');
                     if (cancelled) return;
-                    setDimensions(dimensionsData);
-                    setEvaluations(evaluationsData);
+                    setDimensions(Array.isArray(stats?.dimensions) ? stats.dimensions : []);
+                    setEvaluations(Array.isArray(stats?.assignments) ? stats.assignments : []);
+                    setModelComparison(Array.isArray(stats?.modelComparison) ? stats.modelComparison : []);
+                    setPerformance({
+                        current: Number(stats?.performance?.current || 0),
+                        goal: Number(stats?.performance?.goal || 85),
+                        max: Number(stats?.performance?.max || 100),
+                        completionRate: Number(stats?.performance?.completionRate || 0),
+                        avgScore: Number(stats?.performance?.avgScore || 0),
+                        modelVersion: String(stats?.performance?.modelVersion || "v1.0")
+                    });
                 }
             } catch (err) {
                 console.error(err);
@@ -338,8 +348,8 @@ export default function Dashboard() {
                         <p className="mt-1 text-sm opacity-65">Current run against your target.</p>
                         <div className="mx-auto mt-5 h-44 w-44">
                             <CircularProgressbarWithChildren
-                                value={currentPerformance}
-                                maxValue={maxPerformance}
+                                value={performance.current}
+                                maxValue={performance.max}
                                 strokeWidth={9}
                                 styles={buildStyles({
                                     strokeLinecap: "round",
@@ -348,8 +358,8 @@ export default function Dashboard() {
                                 })}
                             >
                                 <div className="text-center">
-                                    <p className="text-3xl font-bold leading-none">{currentPerformance}%</p>
-                                    <p className="mt-1 text-xs font-medium opacity-70">Goal {goalPerformance}%</p>
+                                    <p className="text-3xl font-bold leading-none">{performance.current}%</p>
+                                    <p className="mt-1 text-xs font-medium opacity-70">Goal {performance.goal}%</p>
                                 </div>
                             </CircularProgressbarWithChildren>
                         </div>
@@ -364,10 +374,46 @@ export default function Dashboard() {
                             </div>
                             <div className="flex items-center justify-between rounded-lg border border-base-300/70 bg-base-200/35 px-3 py-2">
                                 <span className="opacity-70">Model version</span>
-                                <span className="font-semibold">{modelVersion}</span>
+                                <span className="font-semibold">{performance.modelVersion}</span>
                             </div>
                         </div>
                     </aside>
+                </section>
+
+                <section className="rounded-2xl border border-base-300/80 bg-base-100/70 p-4 shadow-xl backdrop-blur-sm sm:p-5">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                        <h2 className="text-xl font-bold">Multi-Model Comparison</h2>
+                        <span className="text-xs opacity-60">{modelComparison.length} model(s)</span>
+                    </div>
+                    <div className="w-full overflow-x-auto rounded-xl border border-base-300/70 bg-base-200/20">
+                        <table className="table table-zebra w-full">
+                            <thead>
+                                <tr className="text-xs uppercase tracking-wide">
+                                    <th>Model</th>
+                                    <th>Version</th>
+                                    <th>Avg Score</th>
+                                    <th>Completed</th>
+                                    <th>Distress Fails</th>
+                                    <th>Major Errors</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {modelComparison.map((row) => (
+                                    <tr key={`${row.modelName}-${row.modelVersion}`}>
+                                        <td className="font-semibold">{row.modelName}</td>
+                                        <td>{row.modelVersion}</td>
+                                        <td>{row.avgScore ?? "-"}</td>
+                                        <td>{row.completedAssignments}/{row.totalAssignments}</td>
+                                        <td>{row.distressFails}</td>
+                                        <td>{row.majorErrors}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        {modelComparison.length === 0 ? (
+                            <p className="py-6 text-center text-sm opacity-60">No final submissions yet.</p>
+                        ) : null}
+                    </div>
                 </section>
 
                 <section className="space-y-3">

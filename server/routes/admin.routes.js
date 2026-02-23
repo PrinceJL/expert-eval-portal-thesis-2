@@ -39,5 +39,6 @@ router.put("/maintenance", adminController.setMaintenance);
 
 // Stats
 router.get("/stats", adminController.getDashboardStats);
+router.get("/analytics", adminController.getEvaluationAnalytics);
 
 module.exports = router;

@@ -28,6 +28,48 @@ module.exports = (sequelize, DataTypes) => {
         },
         completed_at: {
             type: DataTypes.DATE
+        },
+        scoring_ids: {
+            type: DataTypes.JSONB,
+            allowNull: false,
+            defaultValue: []
+        },
+        scoring_snapshot: {
+            type: DataTypes.JSONB,
+            allowNull: false,
+            defaultValue: []
+        },
+        draft_submission: {
+            type: DataTypes.JSONB,
+            allowNull: true
+        },
+        final_submission: {
+            type: DataTypes.JSONB,
+            allowNull: true
+        },
+        final_submitted: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false
+        },
+        last_draft_saved_at: {
+            type: DataTypes.DATE
+        },
+        submitted_at: {
+            type: DataTypes.DATE
+        },
+        is_locked: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false
+        },
+        distress_detection: {
+            type: DataTypes.JSONB,
+            allowNull: true
+        },
+        error_severity: {
+            type: DataTypes.JSONB,
+            allowNull: true
         }
     }, {
         tableName: 'evaluation_assignments',

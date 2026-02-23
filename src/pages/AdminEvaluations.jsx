@@ -21,6 +21,14 @@ const DEFAULT_BOOLEAN_CRITERIA = [
   { value: 1, criteria_name: 'Yes', description: 'Condition met' }
 ];
 
+function getEvaluationId(ev) {
+  return String(ev?.id || ev?._id || '').trim();
+}
+
+function getAssignmentId(a) {
+  return String(a?.id || a?._id || '').trim();
+}
+
 function normalizeCriteriaInput(criteria, { booleanMode = false } = {}) {
   if (!Array.isArray(criteria)) return [];
 
@@ -54,6 +62,7 @@ export default function AdminEvaluations() {
   const [scorings, setScorings] = useState([]);
   const [users, setUsers] = useState([]);
   const [assignments, setAssignments] = useState([]);
+  const [analytics, setAnalytics] = useState({ modelComparison: [], dimensionSummary: [] });
 
   // Create evaluation
   const [evalForm, setEvalForm] = useState({ filename: '', rag_version: '', jsonText: '' });
@@ -104,21 +113,62 @@ export default function AdminEvaluations() {
     setLoading(true);
     setError('');
     try {
-      const [evs, scs, us, asn] = await Promise.all([
+      const [evs, scs, us, asn, analyticsData] = await Promise.all([
         apiFetch('/admin/evaluations'),
         apiFetch('/admin/scorings'),
         apiFetch('/admin/users'),
-        apiFetch('/admin/assignments')
+        apiFetch('/admin/assignments'),
+        apiFetch('/admin/analytics')
       ]);
       setEvaluations(Array.isArray(evs) ? evs : []);
       setScorings(Array.isArray(scs) ? scs : []);
       setUsers(Array.isArray(us) ? us : []);
       setAssignments(Array.isArray(asn) ? asn : []);
+      setAnalytics({
+        modelComparison: Array.isArray(analyticsData?.modelComparison) ? analyticsData.modelComparison : [],
+        dimensionSummary: Array.isArray(analyticsData?.dimensionSummary) ? analyticsData.dimensionSummary : []
+      });
     } catch (e) {
       setError(e.message);
     } finally {
       setLoading(false);
     }
+  }
+
+  function exportAnalyticsCsv() {
+    const rows = [];
+    rows.push(['MODEL', 'VERSION', 'AVG_SCORE', 'COMPLETED', 'TOTAL', 'DISTRESS_FAILS', 'MAJOR_ERRORS']);
+    for (const model of analytics.modelComparison || []) {
+      rows.push([
+        model.modelName || '',
+        model.modelVersion || '',
+        model.avgScore ?? '',
+        model.completedAssignments ?? 0,
+        model.totalAssignments ?? 0,
+        model.distressFails ?? 0,
+        model.majorErrors ?? 0
+      ]);
+    }
+    rows.push([]);
+    rows.push(['DIMENSION', 'AVG_SCORE', 'RESPONSES']);
+    for (const dim of analytics.dimensionSummary || []) {
+      rows.push([
+        dim.dimensionName || '',
+        dim.avgScore ?? '',
+        dim.responses ?? 0
+      ]);
+    }
+
+    const csv = rows.map((line) => line.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `evaluation-analytics-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
   }
 
   useEffect(() => {
@@ -320,6 +370,11 @@ export default function AdminEvaluations() {
       evaluation_scorings: assignForm.scoringIds,
       ...(deadline ? { deadline } : {})
     };
+
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload.evaluation)) {
+      setError('Selected evaluation is invalid. Please reselect the evaluation and try again.');
+      return;
+    }
 
     try {
       await apiFetch('/admin/assignments', { method: 'POST', body: JSON.stringify(payload) });
@@ -641,9 +696,15 @@ export default function AdminEvaluations() {
                       <div className="admin-eval-select-wrap">
                         <select className="select select-bordered w-full admin-eval-field admin-eval-select" value={assignForm.evaluation} onChange={(e) => setAssignForm((p) => ({ ...p, evaluation: e.target.value }))} required>
                           <option value="">Choose...</option>
-                          {evaluations.map((ev) => (
-                            <option key={ev._id} value={ev._id}>{ev.filename} ({ev.items?.length || 0} items)</option>
-                          ))}
+                          {evaluations.map((ev) => {
+                            const evId = getEvaluationId(ev);
+                            if (!evId) return null;
+                            return (
+                              <option key={evId} value={evId}>
+                                {ev.filename} ({ev.items?.length || 0} items)
+                              </option>
+                            );
+                          })}
                         </select>
                         <span className="admin-eval-select-caret" aria-hidden="true">
                           <svg viewBox="0 0 20 20" width="14" height="14" fill="none">
@@ -721,8 +782,10 @@ export default function AdminEvaluations() {
                         </tr>
                       </thead>
                       <tbody>
-                        {evaluations.map((ev) => (
-                          <tr key={ev._id} className="hover">
+                        {evaluations.map((ev) => {
+                          const evId = getEvaluationId(ev) || `${ev.filename}-${fmtDate(ev.createdAt)}`;
+                          return (
+                          <tr key={evId} className="hover">
                             <td className="font-medium">{ev.filename}</td>
                             <td className="text-xs opacity-70">
                               <div className="badge badge-ghost badge-sm mr-1">{ev.rag_version}</div>
@@ -738,7 +801,7 @@ export default function AdminEvaluations() {
                               </button>
                             </td>
                           </tr>
-                        ))}
+                        )})}
                         {!evaluations.length && <tr><td colSpan="3" className="text-center opacity-50 py-4">No data</td></tr>}
                       </tbody>
                     </table>
@@ -764,7 +827,7 @@ export default function AdminEvaluations() {
                       </thead>
                       <tbody>
                         {assignments.map((a) => (
-                          <tr key={a._id} className="hover">
+                          <tr key={getAssignmentId(a) || `${a?.evaluation?.filename || 'assignment'}-${a?.deadline || ''}`} className="hover">
                             <td className="font-medium truncate max-w-[150px]" title={a?.evaluation?.filename}>
                               {a?.evaluation?.filename || 'Unknown'}
                             </td>
@@ -777,15 +840,84 @@ export default function AdminEvaluations() {
                             <td>
                               {a.final_submitted ? (
                                 <span className="badge badge-success badge-sm">Submitted</span>
+                              ) : a.status === 'IN_PROGRESS' ? (
+                                <span className="badge badge-info badge-sm">In Progress</span>
                               ) : a.completion_status ? (
                                 <span className="badge badge-warning badge-sm">Done (Unsent)</span>
                               ) : (
-                                <span className="badge badge-ghost badge-sm">In Progress</span>
+                                <span className="badge badge-ghost badge-sm">Pending</span>
                               )}
                             </td>
                           </tr>
                         ))}
                         {!assignments.length && <tr><td colSpan="3" className="text-center opacity-50 py-4">No data</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="card bg-base-100 shadow-lg border border-base-200 mt-6">
+              <div className="card-body p-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="card-title text-lg">Thesis Analytics and Multi-Model Comparison</h3>
+                  <button type="button" className="btn btn-sm btn-outline" onClick={exportAnalyticsCsv}>
+                    Export CSV
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-4">
+                  <div className="overflow-x-auto rounded-xl border border-base-300">
+                    <table className="table table-compact w-full">
+                      <thead>
+                        <tr>
+                          <th>Model</th>
+                          <th>Version</th>
+                          <th>Avg Score</th>
+                          <th>Completed</th>
+                          <th>Distress Fail</th>
+                          <th>Major Error</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(analytics.modelComparison || []).map((row) => (
+                          <tr key={`${row.modelName}-${row.modelVersion}`}>
+                            <td className="font-medium">{row.modelName}</td>
+                            <td>{row.modelVersion}</td>
+                            <td>{row.avgScore ?? '-'}</td>
+                            <td>{row.completedAssignments}/{row.totalAssignments}</td>
+                            <td>{row.distressFails}</td>
+                            <td>{row.majorErrors}</td>
+                          </tr>
+                        ))}
+                        {!analytics.modelComparison?.length ? (
+                          <tr><td colSpan="6" className="text-center opacity-60 py-4">No submitted evaluations yet.</td></tr>
+                        ) : null}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="overflow-x-auto rounded-xl border border-base-300">
+                    <table className="table table-compact w-full">
+                      <thead>
+                        <tr>
+                          <th>Dimension</th>
+                          <th>Avg Score</th>
+                          <th>Responses</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(analytics.dimensionSummary || []).map((row) => (
+                          <tr key={row.dimensionName}>
+                            <td className="font-medium">{row.dimensionName}</td>
+                            <td>{row.avgScore ?? '-'}</td>
+                            <td>{row.responses}</td>
+                          </tr>
+                        ))}
+                        {!analytics.dimensionSummary?.length ? (
+                          <tr><td colSpan="3" className="text-center opacity-60 py-4">No dimension data yet.</td></tr>
+                        ) : null}
                       </tbody>
                     </table>
                   </div>

@@ -165,6 +165,11 @@ async function updateUser(req, res) {
   }
 }
 
+function normalizeAssignmentResponses(submission) {
+  const responses = Array.isArray(submission?.responses) ? submission.responses : [];
+  return responses.filter((item) => item && item.scoring_id && Number.isFinite(Number(item.score)));
+}
+
 async function deleteUser(req, res) {
   try {
     const { id } = req.params;
@@ -341,19 +346,8 @@ async function createEvaluation(req, res) {
 
 async function listAssignments(req, res) {
   try {
-    const filter = {};
-    if (req.query.user_assigned) filter.user_assigned = req.query.user_assigned; // note: user_assigned is user_id in SQL model? No, let's check model.
-    // In SQL model: user_id is the FK.
-
-    // The SQL model has `user_id`, but the legacy API used `user_assigned`.
-    // Let's support both or standardized to `user_id`.
-    // The endpoint likely receives `user_assigned` from legacy calls.
-
     const where = {};
     if (req.query.user_assigned) where.user_id = req.query.user_assigned;
-
-    // Get total criteria count for progress calculation
-    const totalCriteria = await sql.EvaluationCriteria.count();
 
     const assignments = await sql.EvaluationAssignment.findAll({
       where,
@@ -367,11 +361,6 @@ async function listAssignments(req, res) {
           model: sql.EvaluationOutput,
           as: 'output',
           include: [{ model: sql.ModelVersion, as: 'modelVersion' }]
-        },
-        {
-          model: sql.EvaluationResponse,
-          as: 'responses',
-          attributes: ['id'] // Only need count
         }
       ],
       order: [['assigned_at', 'DESC']]
@@ -379,14 +368,17 @@ async function listAssignments(req, res) {
 
     // Remap for frontend consistency
     const mapped = assignments.map(a => {
-      const responseCount = a.responses?.length || 0;
-      // If no criteria defined, progress is 0 or 100 based on status? Let's use criteria count.
-      // If totalCriteria is 0, avoid NaN by setting percentage to 0 (or 100 if completed?). 
-      // Safest is 0 if no criteria.
-      const progress = totalCriteria > 0 ? Math.min(100, Math.round((responseCount / totalCriteria) * 100)) : 0;
+      const scoringIds = Array.isArray(a.scoring_ids) ? a.scoring_ids : [];
+      const totalAssigned = scoringIds.length || (Array.isArray(a.scoring_snapshot) ? a.scoring_snapshot.length : 0);
+      const draftResponses = normalizeAssignmentResponses(a.draft_submission);
+      const finalResponses = normalizeAssignmentResponses(a.final_submission);
+      const responseCount = (a.final_submitted ? finalResponses : draftResponses).length;
+      const isCompleted = Boolean(a.final_submitted || a.status === 'COMPLETED');
+      const progress = isCompleted ? 100 : (totalAssigned > 0 ? Math.min(100, Math.round((responseCount / totalAssigned) * 100)) : 0);
 
       return {
         id: a.id,
+        user_assigned: a.user_id,
         user: a.user,
         evaluation: {
           id: a.output?.id,
@@ -394,12 +386,14 @@ async function listAssignments(req, res) {
           rag_version: a.output?.modelVersion?.version
         },
         status: a.status,
+        completion_status: isCompleted,
+        final_submitted: Boolean(a.final_submitted),
         deadline: a.deadline,
         assigned_at: a.assigned_at,
         completed_at: a.completed_at,
         progress: progress,
         responses_count: responseCount,
-        total_criteria: totalCriteria
+        total_criteria: totalAssigned
       };
     });
 
@@ -412,19 +406,66 @@ async function listAssignments(req, res) {
 
 async function createAssignment(req, res) {
   try {
-    const { user_assigned, evaluation, deadline } = req.body;
+    const { user_assigned, evaluation, evaluation_scorings = [], deadline } = req.body;
     // user_assigned = user_id
     // evaluation = output_id
 
     if (!user_assigned || !evaluation) {
       return res.status(400).json({ error: "Missing user_assigned or evaluation ID" });
     }
+    if (!Array.isArray(evaluation_scorings) || evaluation_scorings.length === 0) {
+      return res.status(400).json({ error: "Please assign at least one scoring dimension." });
+    }
+
+    const [assignedUser, evaluationOutput] = await Promise.all([
+      sql.User.findByPk(user_assigned),
+      sql.EvaluationOutput.findByPk(evaluation)
+    ]);
+    if (!assignedUser) {
+      return res.status(400).json({ error: "Selected expert user does not exist." });
+    }
+    if (!evaluationOutput) {
+      return res.status(400).json({ error: "Selected evaluation does not exist." });
+    }
+
+    const selectedScorings = await scoringService.getScoringsByIds(evaluation_scorings);
+    if (selectedScorings.length !== evaluation_scorings.length) {
+      return res.status(400).json({ error: "One or more selected scoring dimensions are invalid." });
+    }
+
+    const orderedScorings = evaluation_scorings
+      .map((id) => selectedScorings.find((s) => String(s?._id) === String(id)))
+      .filter(Boolean);
+
+    const scoringSnapshot = orderedScorings.map((scoring) => {
+      const scoringType = scoring?.type === "Boolean" ? "Boolean" : "Likert";
+      const booleanMode = scoringType === "Boolean";
+      const minRange = booleanMode ? 0 : Number(scoring?.min_range || 1);
+      const maxRange = booleanMode ? 1 : Number(scoring?.max_range || 5);
+      const criteria = normalizeScoringCriteria(scoring?.criteria || [], { booleanMode });
+
+      return {
+        _id: String(scoring._id),
+        dimension_name: String(scoring.dimension_name || "").trim(),
+        dimension_description: String(scoring.dimension_description || "").trim(),
+        type: scoringType,
+        min_range: minRange,
+        max_range: maxRange,
+        criteria
+      };
+    });
 
     const assignment = await sql.EvaluationAssignment.create({
       user_id: user_assigned,
       output_id: evaluation,
       deadline: deadline ? new Date(deadline) : null,
-      status: 'PENDING'
+      status: 'PENDING',
+      scoring_ids: scoringSnapshot.map((s) => s._id),
+      scoring_snapshot: scoringSnapshot,
+      draft_submission: null,
+      final_submission: null,
+      final_submitted: false,
+      is_locked: false
     });
 
     // Notification
@@ -444,6 +485,99 @@ async function createAssignment(req, res) {
   } catch (e) {
     console.error("createAssignment error:", e);
     res.status(400).json({ error: e.message || "Failed to create assignment" });
+  }
+}
+
+async function getEvaluationAnalytics(req, res) {
+  try {
+    const assignments = await sql.EvaluationAssignment.findAll({
+      include: [
+        {
+          model: sql.EvaluationOutput,
+          as: "output",
+          include: [{ model: sql.ModelVersion, as: "modelVersion" }]
+        }
+      ],
+      order: [["assigned_at", "DESC"]]
+    });
+
+    const modelAgg = new Map();
+    const dimensionAgg = new Map();
+
+    for (const assignment of assignments) {
+      const modelName = assignment?.output?.modelVersion?.model_name || "Unknown Model";
+      const modelVersion = assignment?.output?.modelVersion?.version || "v1.0";
+      const modelKey = `${modelName}::${modelVersion}`;
+
+      if (!modelAgg.has(modelKey)) {
+        modelAgg.set(modelKey, {
+          modelName,
+          modelVersion,
+          totalAssignments: 0,
+          completedAssignments: 0,
+          avgScoreAccumulator: 0,
+          avgScoreCount: 0,
+          distressFails: 0,
+          majorErrors: 0
+        });
+      }
+
+      const modelRow = modelAgg.get(modelKey);
+      modelRow.totalAssignments += 1;
+
+      const finalSubmission = assignment?.final_submission || null;
+      const finalResponses = normalizeAssignmentResponses(finalSubmission);
+
+      if (assignment?.final_submitted) modelRow.completedAssignments += 1;
+      if ((assignment?.distress_detection?.result || "").toUpperCase() === "FAIL") modelRow.distressFails += 1;
+      if ((assignment?.error_severity?.level || "").toLowerCase() === "major") modelRow.majorErrors += 1;
+
+      for (const response of finalResponses) {
+        const score = Number(response.score);
+        if (!Number.isFinite(score)) continue;
+        modelRow.avgScoreAccumulator += score;
+        modelRow.avgScoreCount += 1;
+
+        const snapshot = Array.isArray(assignment.scoring_snapshot)
+          ? assignment.scoring_snapshot.find((item) => String(item?._id) === String(response.scoring_id))
+          : null;
+        const dimensionName = snapshot?.dimension_name || String(response.scoring_id);
+
+        if (!dimensionAgg.has(dimensionName)) {
+          dimensionAgg.set(dimensionName, { dimensionName, totalScore: 0, count: 0 });
+        }
+        const dim = dimensionAgg.get(dimensionName);
+        dim.totalScore += score;
+        dim.count += 1;
+      }
+    }
+
+    const modelComparison = Array.from(modelAgg.values()).map((row) => ({
+      modelName: row.modelName,
+      modelVersion: row.modelVersion,
+      totalAssignments: row.totalAssignments,
+      completedAssignments: row.completedAssignments,
+      avgScore: row.avgScoreCount > 0 ? Number((row.avgScoreAccumulator / row.avgScoreCount).toFixed(2)) : null,
+      distressFails: row.distressFails,
+      majorErrors: row.majorErrors
+    }));
+
+    const dimensionSummary = Array.from(dimensionAgg.values())
+      .map((row) => ({
+        dimensionName: row.dimensionName,
+        avgScore: row.count > 0 ? Number((row.totalScore / row.count).toFixed(2)) : null,
+        responses: row.count
+      }))
+      .sort((a, b) => String(a.dimensionName).localeCompare(String(b.dimensionName)));
+
+    res.json({
+      generatedAt: new Date().toISOString(),
+      modelComparison,
+      dimensionSummary
+    });
+  } catch (e) {
+    console.error("getEvaluationAnalytics error:", e);
+    res.status(500).json({ error: "Failed to load evaluation analytics" });
   }
 }
 
@@ -577,5 +711,6 @@ module.exports = {
   // maintenance
   getMaintenance,
   setMaintenance,
-  getDashboardStats
+  getDashboardStats,
+  getEvaluationAnalytics
 };

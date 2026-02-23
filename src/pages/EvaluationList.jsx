@@ -61,7 +61,7 @@ export default function EvaluationList() {
   }
 
   const batchNumber = evaluations[0]?.evaluation?.rag_version ?? "—";
-  const completedCount = evaluations.filter(e => e.completion_status).length;
+  const completedCount = evaluations.filter(e => e.completion_status || e.final_submitted).length;
 
   const nextDeadlineEval = [...evaluations]
     .filter(e => !e.completion_status)
@@ -114,10 +114,10 @@ export default function EvaluationList() {
           </thead>
           <tbody>
             {evaluations.map((e) => (
-              <tr key={e._id}>
+              <tr key={e.id || e._id}>
                 <td>
                   <Link
-                    to={`/evaluation/${e._id}`}
+                    to={`/evaluation/${e.id || e._id}`}
                     className="link link-primary"
                   >
                     {e.evaluation?.filename || "—"}
@@ -126,8 +126,10 @@ export default function EvaluationList() {
                 <td>{new Date(e.date_assigned).toLocaleDateString()}</td>
                 <td>{new Date(e.deadline).toLocaleDateString()}</td>
                 <td>
-                  {e.completion_status ? (
+                  {(e.completion_status || e.final_submitted) ? (
                     <span className="badge badge-success">Completed</span>
+                  ) : e.status === "IN_PROGRESS" ? (
+                    <span className="badge badge-info">In Progress</span>
                   ) : (
                     <span className="badge badge-warning">Pending</span>
                   )}
