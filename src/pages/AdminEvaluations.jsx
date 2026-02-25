@@ -387,15 +387,15 @@ export default function AdminEvaluations() {
   }
 
   return (
-    <div className="min-h-screen bg-base-200 text-base-content font-sans admin-evaluations-shell">
-      <div className="container mx-auto p-6 max-w-7xl animate-fade-in admin-evaluations-content">
+    <div className="h-full w-full bg-base-200 text-base-content font-sans admin-evaluations-shell overflow-y-auto custom-scrollbar pb-20">
+      <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-[1400px] animate-fade-in admin-evaluations-content">
         {/* Header */}
-        <div className="flex justify-between items-end mb-8 border-b border-base-200 pb-4 admin-eval-header">
+        <div className="flex justify-between items-end mb-8 border-b border-base-200 pb-4 admin-eval-header sticky top-0 bg-base-200/90 backdrop-blur z-10 pt-4 -mt-4">
           <div>
-            <h1 className="text-3xl font-bold text-base-content">
+            <h1 className="text-2xl sm:text-3xl font-bold text-base-content">
               Evaluation Management
             </h1>
-            <p className="text-base-content/70 mt-2 text-lg">
+            <p className="text-base-content/70 mt-1 text-sm sm:text-base">
               Manage your evaluation pipeline: upload outputs, configure scoring, and assign to experts.
             </p>
           </div>
@@ -785,23 +785,24 @@ export default function AdminEvaluations() {
                         {evaluations.map((ev) => {
                           const evId = getEvaluationId(ev) || `${ev.filename}-${fmtDate(ev.createdAt)}`;
                           return (
-                          <tr key={evId} className="hover">
-                            <td className="font-medium">{ev.filename}</td>
-                            <td className="text-xs opacity-70">
-                              <div className="badge badge-ghost badge-sm mr-1">{ev.rag_version}</div>
-                              {ev.items?.length || 0} items
-                            </td>
-                            <td className="text-xs opacity-50">{fmtDate(ev.createdAt)}</td>
-                            <td>
-                              <button
-                                className="btn btn-xs btn-ghost border border-base-300"
-                                onClick={() => setViewEval(ev)}
-                              >
-                                View Items
-                              </button>
-                            </td>
-                          </tr>
-                        )})}
+                            <tr key={evId} className="hover">
+                              <td className="font-medium">{ev.filename}</td>
+                              <td className="text-xs opacity-70">
+                                <div className="badge badge-ghost badge-sm mr-1">{ev.rag_version}</div>
+                                {ev.items?.length || 0} items
+                              </td>
+                              <td className="text-xs opacity-50">{fmtDate(ev.createdAt)}</td>
+                              <td>
+                                <button
+                                  className="btn btn-xs btn-ghost border border-base-300"
+                                  onClick={() => setViewEval(ev)}
+                                >
+                                  View Items
+                                </button>
+                              </td>
+                            </tr>
+                          )
+                        })}
                         {!evaluations.length && <tr><td colSpan="3" className="text-center opacity-50 py-4">No data</td></tr>}
                       </tbody>
                     </table>

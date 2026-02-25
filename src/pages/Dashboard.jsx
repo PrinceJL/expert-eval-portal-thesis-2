@@ -10,7 +10,7 @@ import EvaluationTable from "../components/EvaluationTable";
 
 function AdminDashboardSkeleton() {
     return (
-        <div className="admin-dashboard-shell min-h-screen w-full bg-base-100 px-4 py-6 sm:px-6 sm:py-8">
+        <div className="admin-dashboard-shell h-full overflow-y-auto w-full bg-base-100 px-4 py-6 sm:px-6 sm:py-8">
             <div className="mx-auto w-full max-w-[1240px] space-y-6">
                 <div className="space-y-2">
                     <span className="app-skeleton h-10 w-64" />
@@ -48,7 +48,7 @@ function AdminDashboardSkeleton() {
 
 function ExpertDashboardSkeleton() {
     return (
-        <div className="min-h-screen w-full bg-base-100 px-4 py-6 sm:px-6 sm:py-8">
+        <div className="h-full overflow-y-auto w-full bg-base-100 px-4 py-6 sm:px-6 sm:py-8">
             <div className="mx-auto w-full max-w-[1240px] space-y-6 sm:space-y-8">
                 <section className="rounded-2xl border border-base-300/80 bg-base-100 p-5 shadow-xl sm:p-6">
                     <div className="space-y-2">
@@ -220,7 +220,7 @@ export default function Dashboard() {
 
     if (isAdmin) {
         return (
-            <div className="admin-dashboard-shell min-h-screen w-full bg-base-100 px-4 py-6 sm:px-6 sm:py-8">
+            <div className="admin-dashboard-shell h-full overflow-y-auto w-full bg-base-100 px-4 py-6 sm:px-6 sm:py-8">
                 <div className="mx-auto w-full max-w-[1240px] space-y-6">
                     <div>
                         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
@@ -301,13 +301,13 @@ export default function Dashboard() {
 
     // Expert View
     return (
-        <div className="min-h-screen w-full bg-base-100 px-4 py-6 sm:px-6 sm:py-8">
+        <div className="h-full overflow-y-auto w-full bg-base-100 px-4 py-6 sm:px-6 sm:py-8">
             <div className="mx-auto w-full max-w-[1240px] space-y-6 sm:space-y-8">
                 <section className="rounded-2xl border border-base-300/80 bg-gradient-to-br from-base-100 via-base-100 to-base-200/35 p-5 shadow-xl sm:p-6">
                     <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
                             <h1 className="text-3xl font-bold tracking-tight">Welcome, {userName}!</h1>
-                            <p className="mt-1 text-sm opacity-70">Overview of your evaluations and model performance.</p>
+                            <p className="mt-1 text-sm opacity-70">Overview of your evaluations and progress.</p>
                         </div>
                         <span className="badge badge-outline px-3 py-3 text-xs font-semibold tracking-wide">{user?.role || "EXPERT"}</span>
                     </div>
@@ -342,51 +342,53 @@ export default function Dashboard() {
                                 <span className="text-xs font-medium opacity-60">{dimensions.length} dimensions</span>
                             </div>
                             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                                {dimensions.map((dimension, index) => (
-                                    <StatCard
-                                        key={dimension._id || dimension.name || index}
-                                        title={dimension.name}
-                                        value={dimension.avgScore}
-                                        subtitle={dimension.sentiment}
-                                        description={dimension.description}
-                                    />
-                                ))}
+                                {dimensions.length === 0 ? (
+                                    <div className="col-span-1 py-10 text-center sm:col-span-2 xl:col-span-3 rounded-xl border border-dashed border-base-300 bg-base-200/20">
+                                        <p className="text-sm font-medium opacity-60">Complete your first evaluation to see dimension statistics here.</p>
+                                    </div>
+                                ) : (
+                                    dimensions.map((dimension, index) => (
+                                        <StatCard
+                                            key={dimension._id || dimension.name || index}
+                                            title={dimension.name}
+                                            value={dimension.avgScore}
+                                            subtitle={dimension.sentiment}
+                                            description={dimension.description}
+                                        />
+                                    ))
+                                )}
                             </div>
                         </div>
                     ) : <div></div>}
 
                     <aside className="rounded-2xl border border-base-300/80 bg-base-100/70 p-5 shadow-xl backdrop-blur-sm">
-                        <h2 className="text-lg font-bold">Model Goal Progress</h2>
-                        <p className="mt-1 text-sm opacity-65">Current run against your target.</p>
+                        <h2 className="text-lg font-bold">Evaluation Progress</h2>
+                        <p className="mt-1 text-sm opacity-65">Your completion rate for assigned tasks.</p>
                         <div className="mx-auto mt-5 h-44 w-44">
                             <CircularProgressbarWithChildren
-                                value={performance.current}
-                                maxValue={performance.max}
+                                value={completionRate}
+                                maxValue={100}
                                 strokeWidth={9}
                                 styles={buildStyles({
                                     strokeLinecap: "round",
-                                    pathColor: "#3B82F6",
+                                    pathColor: "#10B981", /* Emerald green to signify completion */
                                     trailColor: "rgba(148, 163, 184, 0.28)",
                                 })}
                             >
                                 <div className="text-center">
-                                    <p className="text-3xl font-bold leading-none">{performance.current}%</p>
-                                    <p className="mt-1 text-xs font-medium opacity-70">Goal {performance.goal}%</p>
+                                    <p className="text-3xl font-bold leading-none">{completionRate}%</p>
+                                    <p className="mt-1 text-xs font-medium opacity-70">{completedCount} / {evaluations.length} Done</p>
                                 </div>
                             </CircularProgressbarWithChildren>
                         </div>
                         <div className="mt-5 space-y-2 text-sm">
                             <div className="flex items-center justify-between rounded-lg border border-base-300/70 bg-base-200/35 px-3 py-2">
-                                <span className="opacity-70">Completion rate</span>
-                                <span className="font-semibold">{completionRate}%</span>
+                                <span className="opacity-70">Pending tasks</span>
+                                <span className="font-semibold">{pendingCount}</span>
                             </div>
                             <div className="flex items-center justify-between rounded-lg border border-base-300/70 bg-base-200/35 px-3 py-2">
                                 <span className="opacity-70">Next deadline</span>
                                 <span className="font-semibold">{upcomingDeadline}</span>
-                            </div>
-                            <div className="flex items-center justify-between rounded-lg border border-base-300/70 bg-base-200/35 px-3 py-2">
-                                <span className="opacity-70">Model version</span>
-                                <span className="font-semibold">{performance.modelVersion}</span>
                             </div>
                         </div>
                     </aside>

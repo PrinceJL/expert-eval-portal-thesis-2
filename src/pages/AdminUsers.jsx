@@ -309,12 +309,12 @@ export default function AdminUsers() {
   }
 
   return (
-    <div className="min-h-screen text-base-content font-sans admin-users-shell">
-      <div className="container mx-auto p-6 max-w-7xl animate-fade-in space-y-6 admin-users-content">
-        <div className="flex flex-wrap items-end justify-between gap-3 border-b border-base-300 pb-4 admin-users-header">
+    <div className="h-full w-full bg-base-200 text-base-content font-sans admin-users-shell overflow-y-auto custom-scrollbar pb-20">
+      <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-[1400px] animate-fade-in space-y-6 admin-users-content">
+        <div className="flex flex-wrap items-end justify-between gap-3 border-b border-base-200 pb-4 admin-users-header sticky top-0 bg-base-200/90 backdrop-blur z-10 pt-4 -mt-4">
           <div>
-            <h1 className="text-3xl font-bold">User Management & Settings</h1>
-            <p className="text-base-content/70 mt-2 text-lg">
+            <h1 className="text-2xl sm:text-3xl font-bold">User Management & Settings</h1>
+            <p className="text-base-content/70 mt-1 text-sm sm:text-base">
               Manage accounts, and global dashboard configuration.
             </p>
           </div>

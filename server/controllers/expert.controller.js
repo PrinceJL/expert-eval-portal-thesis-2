@@ -567,7 +567,12 @@ async function getExpertStats(req, res) {
     const completed = mappedAssignments.filter((item) => item.completion_status).length;
     const totalAssignments = mappedAssignments.length;
     const completionRate = totalAssignments > 0 ? Math.round((completed / totalAssignments) * 100) : 0;
-    const avgScore = totalFinalResponses > 0 ? Number((totalFinalScore / totalFinalResponses).toFixed(2)) : 0;
+
+    // Average score should ideally be normalized on a 0-100 scale but if we just want the raw average across all responses:
+    const rawAvgScore = totalFinalResponses > 0 ? Number((totalFinalScore / totalFinalResponses).toFixed(2)) : 0;
+
+    // If scoring is 1-5, multiplying by 20 maps a 5.0 to 100%.
+    const normalizedProgressScore = rawAvgScore > 0 ? Math.min(100, Math.round((rawAvgScore / 5) * 100)) : 0;
 
     let settingsDoc = await SystemSettings.findOne({ type: "dashboard_config" });
     if (!settingsDoc) {
@@ -590,10 +595,10 @@ async function getExpertStats(req, res) {
       modelComparison,
       settings,
       performance: {
-        current: avgScore > 0 ? Math.round(avgScore * 20) : completionRate,
+        current: rawAvgScore > 0 ? normalizedProgressScore : completionRate,
         goal: settings.dashboardTargetPerformance,
         max: 100,
-        avgScore,
+        avgScore: rawAvgScore,
         completionRate,
         modelVersion: mappedAssignments[0]?.model?.version || "v1.0"
       }

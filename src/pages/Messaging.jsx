@@ -316,8 +316,8 @@ export default function Messaging() {
           <span className="app-skeleton h-9 w-44" />
           <span className="app-skeleton mt-2 h-5 w-56" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6 min-h-[68vh] bg-base-200 rounded-xl border border-base-300 shadow-2xl overflow-hidden">
-          <div className="flex flex-col border-r border-base-200 bg-base-200/30">
+        <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-0 md:gap-6 min-h-[75vh] md:h-[75vh] bg-base-200 rounded-xl border border-base-300 shadow-2xl overflow-hidden">
+          <div className="flex flex-col border-r border-base-200 bg-base-200/30 h-[75vh] md:h-auto">
             <div className="p-4 border-b border-base-200 bg-base-100">
               <span className="app-skeleton h-7 w-24" />
             </div>
@@ -334,7 +334,7 @@ export default function Messaging() {
             </div>
           </div>
 
-          <div className="flex flex-col min-h-0 bg-base-100 relative">
+          <div className="hidden md:flex flex-col min-h-0 bg-base-100 relative h-[75vh] md:h-auto">
             <div className="p-4 border-b border-base-200 bg-base-100 flex items-center gap-3">
               <span className="app-skeleton app-skeleton-circle h-10 w-10" />
               <div>
@@ -376,9 +376,9 @@ export default function Messaging() {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6 min-h-[68vh] bg-base-200 rounded-xl border border-base-300 shadow-2xl overflow-hidden">
+      <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-0 md:gap-6 min-h-[75vh] md:h-[75vh] bg-base-200 rounded-xl border border-base-300 shadow-2xl overflow-hidden">
         {/* Contacts Sidebar */}
-        <div className="flex flex-col border-r border-base-200 bg-base-200/30">
+        <div className={`flex flex-col border-r border-base-200 bg-base-200/30 ${selected ? 'hidden md:flex' : 'flex'} h-[75vh] md:h-auto`}>
           <div className="p-4 border-b border-base-200 bg-base-100">
             <h2 className="font-semibold text-lg">Contacts</h2>
           </div>
@@ -463,7 +463,7 @@ export default function Messaging() {
         </div>
 
         {/* Chat Area */}
-        <div className="flex flex-col min-h-0 bg-base-100 relative">
+        <div className={`flex flex-col min-h-0 bg-base-100 relative ${!selected ? 'hidden md:flex' : 'flex'} h-[75vh] md:h-auto`}>
           {!selected ? (
             <div className="flex-1 flex flex-col items-center justify-center text-base-content/50 p-8 text-center">
               <div className="w-24 h-24 bg-base-200 rounded-full flex items-center justify-center mb-4">
@@ -477,8 +477,13 @@ export default function Messaging() {
           ) : (
             <>
               {/* Chat Header */}
-              <div className="p-4 border-b border-base-200 bg-base-100 flex items-center justify-between sticky top-0 z-10 shadow-sm">
-                <div className="flex items-center gap-3">
+              <div className="p-4 border-b border-base-200 bg-base-100 flex items-center justify-between sticky top-0 z-10 shadow-sm shrink-0">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <button className="md:hidden btn btn-ghost btn-circle btn-sm -ml-2" onClick={() => setSelected(null)}>
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M15 18l-6-6 6-6" />
+                    </svg>
+                  </button>
                   <div className="avatar relative">
                     <div
                       className="rounded-full w-10 h-10 flex items-center justify-center"
@@ -514,8 +519,8 @@ export default function Messaging() {
                       >
                         {selected.role}
                       </span>
-                      <span className="truncate">{selected.email}</span>
-                      <span style={{ color: selectedPresenceTheme.color }}>
+                      <span className="hidden sm:inline truncate">{selected.email}</span>
+                      <span className="hidden sm:inline" style={{ color: selectedPresenceTheme.color }}>
                         {selectedPresenceTheme.label}
                       </span>
                     </div>
