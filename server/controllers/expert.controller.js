@@ -1,5 +1,6 @@
 const { sql } = require("../models");
 const scoringService = require("../models/evalV2/services/eval_score.service");
+const SystemSettings = require("../models/mongo/system_settings.model");
 
 const { EvaluationAssignment, EvaluationOutput, ModelVersion, EvaluationCriteria } = sql;
 
@@ -527,7 +528,9 @@ async function getExpertStats(req, res) {
 
         if (!dimensionAgg.has(dimensionName)) {
           dimensionAgg.set(dimensionName, {
+            _id: String(response.scoring_id),
             name: dimensionName,
+            description: scoring?.dimension_description || "",
             totalScore: 0,
             count: 0
           });
@@ -542,7 +545,9 @@ async function getExpertStats(req, res) {
     const dimensions = Array.from(dimensionAgg.values()).map((dimension) => {
       const avgScore = dimension.count > 0 ? Number((dimension.totalScore / dimension.count).toFixed(1)) : 0;
       return {
+        _id: dimension._id,
         name: dimension.name,
+        description: dimension.description,
         avgScore,
         sentiment: scoreToSentiment(avgScore),
         responses: dimension.count
@@ -564,13 +569,29 @@ async function getExpertStats(req, res) {
     const completionRate = totalAssignments > 0 ? Math.round((completed / totalAssignments) * 100) : 0;
     const avgScore = totalFinalResponses > 0 ? Number((totalFinalScore / totalFinalResponses).toFixed(2)) : 0;
 
+    let settingsDoc = await SystemSettings.findOne({ type: "dashboard_config" });
+    if (!settingsDoc) {
+      settingsDoc = {
+        dashboardTargetPerformance: 85,
+        dashboardShowDimensions: true,
+        dashboardShowMetrics: true
+      };
+    }
+
+    const settings = {
+      dashboardTargetPerformance: settingsDoc.dashboardTargetPerformance || 85,
+      dashboardShowDimensions: settingsDoc.dashboardShowDimensions !== false,
+      dashboardShowMetrics: settingsDoc.dashboardShowMetrics !== false
+    };
+
     res.json({
       assignments: mappedAssignments,
       dimensions,
       modelComparison,
+      settings,
       performance: {
         current: avgScore > 0 ? Math.round(avgScore * 20) : completionRate,
-        goal: 85,
+        goal: settings.dashboardTargetPerformance,
         max: 100,
         avgScore,
         completionRate,

@@ -232,9 +232,9 @@ export default function EvaluationPage() {
     normalizeScoreValue(scores[currentScoring?._id]) !== undefined;
 
   return (
-    <div className="flex h-screen bg-base-100 font-sans">
-      <div className="flex-1 flex flex-col h-full relative">
-        <div className="flex-1 overflow-y-auto p-8 scroll-smooth">
+    <div className="flex w-full overflow-hidden bg-base-100 font-sans" style={{ height: "calc(100vh - 65px)" }}>
+      <div className="flex-1 flex flex-col h-full relative overflow-hidden">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 scroll-smooth">
           <div className="max-w-4xl mx-auto w-full pb-10 space-y-6">
             <Typography variant="h5" className="font-bold text-2xl border-b pb-4 border-base-300">
               {assignment?.evaluation?.filename} - <span className="text-primary">{currentScoring?.dimension_name}</span>
@@ -281,177 +281,195 @@ export default function EvaluationPage() {
         </div>
       </div>
 
-      <div className="w-full sm:w-[430px] border-l border-base-300 bg-base-100 p-6 overflow-y-auto flex flex-col gap-5 shadow-xl">
-        <Typography variant="h6" className="font-bold text-lg leading-snug">
-          {currentScoring?.dimension_name}
-        </Typography>
-
-        <div className="divider mt-0 mb-2" />
-
-        <div>
-          <div className="flex justify-between items-center mb-2">
-            <Typography variant="body2" className="font-semibold opacity-80">
-              Scoring Guide
+      <div className="flex h-full w-full sm:w-[450px] flex-col overflow-hidden border-l border-base-300 bg-base-100 shadow-xl">
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6 flex flex-col gap-5">
+          <div
+            className="flex items-center justify-between cursor-pointer group tooltip tooltip-bottom z-[100]"
+            data-tip="Click to view scoring criteria description"
+            onClick={() => setShowDescription((prev) => !prev)}
+          >
+            <Typography variant="h6" className="font-bold text-lg leading-snug group-hover:text-primary transition-colors">
+              {currentScoring?.dimension_name}
             </Typography>
-            <IconButton size="small" onClick={() => setShowDescription((prev) => !prev)}>
+            <IconButton size="small" className="pointer-events-none">
               {showDescription ? <ExpandLess fontSize="small" /> : <ExpandMore fontSize="small" />}
             </IconButton>
           </div>
 
-          {showDescription && (
-            <div className="bg-base-200 border border-base-300 rounded-lg p-3 text-sm leading-relaxed mb-3">
-              {currentScoring?.dimension_description || "No description available."}
-            </div>
-          )}
+          <div className="divider mt-0 mb-2" />
 
-          <ButtonGroup orientation="vertical" variant="outlined" fullWidth className="gap-2">
-            {scoreRange.map((value) => (
-              <Button
-                key={value}
-                disabled={isLocked}
-                variant={Number(scores[currentScoring._id]) === value ? "contained" : "outlined"}
-                color={Number(scores[currentScoring._id]) === value ? "primary" : "inherit"}
-                onClick={() => setScores((prev) => ({ ...prev, [currentScoring._id]: value }))}
-                className="!justify-between !py-2"
-              >
-                <span>{value}</span>
-                <span className="opacity-70 text-xs">{getCriteriaName(value)}</span>
-              </Button>
-            ))}
-          </ButtonGroup>
+          <div>
+            {showDescription && (
+              <div className="bg-base-200 border border-base-300 rounded-lg p-3 text-sm leading-relaxed mb-4">
+                {currentScoring?.dimension_description || "No description available."}
+              </div>
+            )}
 
-          <textarea
-            value={notes[currentScoring._id] || ""}
-            onChange={(event) => setNotes((prev) => ({ ...prev, [currentScoring._id]: event.target.value }))}
-            placeholder="Optional note for this dimension"
-            className="textarea textarea-bordered w-full mt-3"
-            rows={3}
-            disabled={isLocked}
-          />
+            <ButtonGroup orientation="vertical" variant="outlined" fullWidth className="gap-2">
+              {scoreRange.map((value) => (
+                <Button
+                  key={value}
+                  disabled={isLocked}
+                  variant={Number(scores[currentScoring._id]) === value ? "contained" : "outlined"}
+                  color={Number(scores[currentScoring._id]) === value ? "primary" : "inherit"}
+                  onClick={() => setScores((prev) => ({ ...prev, [currentScoring._id]: value }))}
+                  className="!justify-between !py-2"
+                >
+                  <span>{value}</span>
+                  <span className="opacity-70 text-xs">{getCriteriaName(value)}</span>
+                </Button>
+              ))}
+            </ButtonGroup>
 
-          <p className="text-xs opacity-60 mt-2">
-            Dimension {dimensionIndex + 1} of {evaluationScorings.length}
-          </p>
-
-          <div className="flex justify-between mt-4">
-            <Button
-              variant="text"
-              disabled={dimensionIndex === 0}
-              onClick={() => setDimensionIndex((prev) => Math.max(0, prev - 1))}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="text"
-              disabled={dimensionIndex >= evaluationScorings.length - 1}
-              onClick={() => setDimensionIndex((prev) => Math.min(evaluationScorings.length - 1, prev + 1))}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-
-        <div className="divider my-2" />
-
-        <div className="space-y-3">
-          <Typography variant="subtitle2" className="font-semibold">Distress Detection (Pass/Fail)</Typography>
-          {highRiskRequired ? <p className="text-xs text-warning">High-risk case detected. Distress detection is required.</p> : null}
-          <label className="label cursor-pointer justify-start gap-3">
-            <input
-              type="checkbox"
-              className="checkbox checkbox-sm"
-              checked={distressApplicable}
-              onChange={(event) => {
-                const checked = event.target.checked;
-                setDistressApplicable(checked);
-                if (!checked) setDistressResult("N/A");
-              }}
+            <textarea
+              value={notes[currentScoring._id] || ""}
+              onChange={(event) => setNotes((prev) => ({ ...prev, [currentScoring._id]: event.target.value }))}
+              placeholder="Optional note for this dimension"
+              className="textarea textarea-bordered w-full mt-3"
+              rows={3}
               disabled={isLocked}
             />
-            <span className="label-text">This case is high-risk and requires distress detection</span>
-          </label>
-          <div className="join w-full">
-            <button
-              type="button"
-              className={`btn join-item flex-1 ${distressResult === "PASS" ? "btn-success" : "btn-outline"}`}
-              disabled={isLocked || !distressApplicable}
-              onClick={() => setDistressResult("PASS")}
-            >
-              PASS
-            </button>
-            <button
-              type="button"
-              className={`btn join-item flex-1 ${distressResult === "FAIL" ? "btn-error" : "btn-outline"}`}
-              disabled={isLocked || !distressApplicable}
-              onClick={() => setDistressResult("FAIL")}
-            >
-              FAIL
-            </button>
+
+            <p className="text-xs opacity-60 mt-2">
+              Dimension {dimensionIndex + 1} of {evaluationScorings.length}
+            </p>
+
+            <div className="flex justify-between mt-4">
+              <div className="tooltip" data-tip="Go back to the previous dimension">
+                <Button
+                  variant="text"
+                  disabled={dimensionIndex === 0}
+                  onClick={() => setDimensionIndex((prev) => Math.max(0, prev - 1))}
+                >
+                  Previous
+                </Button>
+              </div>
+              <div className="tooltip" data-tip="Skip to the next dimension">
+                <Button
+                  variant="text"
+                  disabled={dimensionIndex >= evaluationScorings.length - 1}
+                  onClick={() => setDimensionIndex((prev) => Math.min(evaluationScorings.length - 1, prev + 1))}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
           </div>
-          <textarea
-            value={distressNotes}
-            onChange={(event) => setDistressNotes(event.target.value)}
-            className="textarea textarea-bordered w-full"
-            rows={2}
-            placeholder="Optional distress detection notes"
-            disabled={isLocked}
-          />
-        </div>
 
-        <div className="space-y-3">
-          <Typography variant="subtitle2" className="font-semibold">Error Severity</Typography>
-          <select
-            value={errorLevel}
-            onChange={(event) => setErrorLevel(event.target.value)}
-            className="select select-bordered w-full"
-            disabled={isLocked}
-          >
-            {ERROR_LEVEL_OPTIONS.map((level) => (
-              <option key={level} value={level}>{level.toUpperCase()}</option>
-            ))}
-          </select>
-          <textarea
-            value={errorDescription}
-            onChange={(event) => setErrorDescription(event.target.value)}
-            className="textarea textarea-bordered w-full"
-            rows={2}
-            placeholder="Describe notable errors (optional)"
-            disabled={isLocked}
-          />
-          {errorLevel === "major" ? (
-            <p className="text-xs text-error">Major severity is marked as score override in the final submission.</p>
-          ) : null}
-        </div>
+          <div className="divider my-2" />
 
-        <div className="pt-2 space-y-2">
-          <button
-            type="button"
-            className="btn btn-outline w-full"
-            onClick={handleSaveDraft}
-            disabled={isLocked || savingDraft || submittingFinal}
-          >
-            {savingDraft ? "Saving Draft..." : "Save Draft"}
-          </button>
+          <div className="space-y-3">
+            <Typography variant="subtitle2" className="font-semibold">Distress Detection (Pass/Fail)</Typography>
+            {highRiskRequired ? <p className="text-xs text-warning">High-risk case detected. Distress detection is required.</p> : null}
+            <label className="label cursor-pointer justify-start gap-3">
+              <input
+                type="checkbox"
+                className="checkbox checkbox-sm"
+                checked={distressApplicable}
+                onChange={(event) => {
+                  const checked = event.target.checked;
+                  setDistressApplicable(checked);
+                  if (!checked) setDistressResult("N/A");
+                }}
+                disabled={isLocked}
+              />
+              <span className="label-text">This case is high-risk and requires distress detection</span>
+            </label>
+            <div className="join w-full tooltip" data-tip="Mark whether this query exhibits dangerous or high-risk distress">
+              <button
+                type="button"
+                className={`btn join-item flex-1 ${distressResult === "PASS" ? "btn-success" : "btn-outline"}`}
+                disabled={isLocked}
+                onClick={() => {
+                  setDistressApplicable(true);
+                  setDistressResult("PASS");
+                }}
+              >
+                PASS
+              </button>
+              <button
+                type="button"
+                className={`btn join-item flex-1 ${distressResult === "FAIL" ? "btn-error" : "btn-outline"}`}
+                disabled={isLocked}
+                onClick={() => {
+                  setDistressApplicable(true);
+                  setDistressResult("FAIL");
+                }}
+              >
+                FAIL
+              </button>
+            </div>
+            <textarea
+              value={distressNotes}
+              onChange={(event) => setDistressNotes(event.target.value)}
+              className="textarea textarea-bordered w-full"
+              rows={2}
+              placeholder="Optional distress detection notes"
+              disabled={isLocked}
+            />
+          </div>
 
-          {isFinalDimension ? (
-            <button
-              type="button"
-              className="btn btn-primary w-full"
-              onClick={handleSubmitFinal}
-              disabled={isLocked || !hasCurrentScore || submittingFinal || savingDraft}
+          <div className="space-y-3">
+            <Typography variant="subtitle2" className="font-semibold">Error Severity</Typography>
+            <select
+              value={errorLevel}
+              onChange={(event) => setErrorLevel(event.target.value)}
+              className="select select-bordered w-full"
+              disabled={isLocked}
             >
-              {submittingFinal ? "Submitting..." : "Submit Final (Lock)"}
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="btn btn-primary w-full"
-              onClick={() => setDimensionIndex((prev) => Math.min(evaluationScorings.length - 1, prev + 1))}
-              disabled={!hasCurrentScore}
-            >
-              Continue
-            </button>
-          )}
+              {ERROR_LEVEL_OPTIONS.map((level) => (
+                <option key={level} value={level}>{level.toUpperCase()}</option>
+              ))}
+            </select>
+            <textarea
+              value={errorDescription}
+              onChange={(event) => setErrorDescription(event.target.value)}
+              className="textarea textarea-bordered w-full"
+              rows={2}
+              placeholder="Describe notable errors (optional)"
+              disabled={isLocked}
+            />
+            {errorLevel === "major" ? (
+              <p className="text-xs text-error">Major severity is marked as score override in the final submission.</p>
+            ) : null}
+          </div>
+
+          <div className="pt-2 space-y-2">
+            <div className="tooltip w-full" data-tip="Save your progress to continue later without submitting">
+              <button
+                type="button"
+                className="btn btn-outline w-full"
+                onClick={handleSaveDraft}
+                disabled={isLocked || savingDraft || submittingFinal}
+              >
+                {savingDraft ? "Saving Draft..." : "Save Draft"}
+              </button>
+            </div>
+
+            {isFinalDimension ? (
+              <div className="tooltip tooltip-bottom tooltip-primary w-full" data-tip="Lock in your evaluation and submit it to admins. This cannot be undone.">
+                <button
+                  type="button"
+                  className="btn btn-primary w-full"
+                  onClick={handleSubmitFinal}
+                  disabled={isLocked || !hasCurrentScore || submittingFinal || savingDraft}
+                >
+                  {submittingFinal ? "Submitting..." : "Submit Final (Lock)"}
+                </button>
+              </div>
+            ) : (
+              <div className="tooltip tooltip-bottom w-full" data-tip="Proceed to score the next dimension">
+                <button
+                  type="button"
+                  className="btn btn-primary w-full"
+                  onClick={() => setDimensionIndex((prev) => Math.min(evaluationScorings.length - 1, prev + 1))}
+                  disabled={!hasCurrentScore}
+                >
+                  Continue
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

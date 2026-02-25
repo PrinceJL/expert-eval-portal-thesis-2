@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 
 const { sql, mongo } = require("../models");
+const SystemSettings = require("../models/mongo/system_settings.model");
 const { Op } = require("sequelize");
 const notificationService = require("../services/notification.service");
 
@@ -691,6 +692,45 @@ async function getDashboardStats(req, res) {
   }
 }
 
+async function getDashboardSettings(req, res) {
+  try {
+    let settings = await SystemSettings.findOne({ type: "dashboard_config" });
+    if (!settings) {
+      settings = new SystemSettings({
+        type: "dashboard_config",
+        dashboardTargetPerformance: 85,
+        dashboardShowDimensions: true,
+        dashboardShowMetrics: true
+      });
+      await settings.save();
+    }
+    res.json(settings);
+  } catch (err) {
+    console.error("getDashboardSettings error:", err);
+    res.status(500).json({ error: "Failed to fetch dashboard settings" });
+  }
+}
+
+async function updateDashboardSettings(req, res) {
+  try {
+    const { dashboardTargetPerformance, dashboardShowDimensions, dashboardShowMetrics } = req.body;
+    let settings = await SystemSettings.findOne({ type: "dashboard_config" });
+    if (!settings) {
+      settings = new SystemSettings({ type: "dashboard_config" });
+    }
+
+    if (dashboardTargetPerformance !== undefined) settings.dashboardTargetPerformance = dashboardTargetPerformance;
+    if (dashboardShowDimensions !== undefined) settings.dashboardShowDimensions = dashboardShowDimensions;
+    if (dashboardShowMetrics !== undefined) settings.dashboardShowMetrics = dashboardShowMetrics;
+
+    await settings.save();
+    res.json(settings);
+  } catch (err) {
+    console.error("updateDashboardSettings error:", err);
+    res.status(500).json({ error: "Failed to update dashboard settings" });
+  }
+}
+
 module.exports = {
   // users
   listUsers,
@@ -712,5 +752,7 @@ module.exports = {
   getMaintenance,
   setMaintenance,
   getDashboardStats,
-  getEvaluationAnalytics
+  getEvaluationAnalytics,
+  getDashboardSettings,
+  updateDashboardSettings
 };

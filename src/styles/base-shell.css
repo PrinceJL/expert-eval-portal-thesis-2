@@ -400,7 +400,8 @@ body,
 }
 
 .app-shell-route {
-  min-height: calc(100% - var(--app-header-height));
+  height: calc(100vh - var(--app-header-height));
+  min-height: calc(100vh - var(--app-header-height));
   background: transparent;
 }
 
