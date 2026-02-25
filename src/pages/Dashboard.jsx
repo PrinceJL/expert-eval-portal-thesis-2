@@ -345,6 +345,7 @@ export default function Dashboard() {
                                         title={dimension.name}
                                         value={dimension.avgScore}
                                         subtitle={dimension.sentiment}
+                                        description={dimension.description}
                                     />
                                 ))}
                             </div>
