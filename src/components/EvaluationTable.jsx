@@ -20,10 +20,10 @@ export default function EvaluationTable({ evaluations }) {
                         </thead>
                         <tbody>
                             {evaluations.map(e => (
-                            <tr key={e._id} className="hover">
+                            <tr key={e.id || e._id} className="hover">
                                     <td>
                                         <Link
-                                            to={`/evaluation/${e._id}`}
+                                            to={`/evaluation/${e.id || e._id}`}
                                         className="font-mono text-primary no-underline hover:underline"
                                         >
                                             {e.evaluation.filename}
@@ -36,8 +36,10 @@ export default function EvaluationTable({ evaluations }) {
                                         {new Date(e.deadline).toLocaleDateString()}
                                     </td>
                                     <td>
-                                        {e.completion_status ? (
+                                        {(e.completion_status || e.final_submitted) ? (
                                         <span className="badge badge-success badge-sm">Completed</span>
+                                        ) : e.status === "IN_PROGRESS" ? (
+                                        <span className="badge badge-info badge-sm">In Progress</span>
                                         ) : (
                                         <span className="badge badge-warning badge-sm">Pending</span>
                                         )}

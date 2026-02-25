@@ -61,7 +61,7 @@ export default function EvaluationList() {
   }
 
   const batchNumber = evaluations[0]?.evaluation?.rag_version ?? "—";
-  const completedCount = evaluations.filter(e => e.completion_status).length;
+  const completedCount = evaluations.filter(e => e.completion_status || e.final_submitted).length;
 
   const nextDeadlineEval = [...evaluations]
     .filter(e => !e.completion_status)
@@ -82,10 +82,8 @@ export default function EvaluationList() {
               {nextDeadlineEval ? (
                 <p>
                   {new Date(nextDeadlineEval.deadline).toLocaleDateString()} —{" "}
-                  <span className={daysUntil(nextDeadlineEval.deadline) < 0 ? "text-error font-bold" : "text-error"}>
-                    {daysUntil(nextDeadlineEval.deadline) < 0
-                      ? `overdue by ${Math.abs(daysUntil(nextDeadlineEval.deadline))} days`
-                      : `in ${daysUntil(nextDeadlineEval.deadline)} days`}
+                  <span className="text-error">
+                    in {daysUntil(nextDeadlineEval.deadline)} days
                   </span>
                 </p>
               ) : (
@@ -115,32 +113,29 @@ export default function EvaluationList() {
             </tr>
           </thead>
           <tbody>
-            {evaluations.map((e) => {
-              const isLate = !e.completion_status && new Date(e.deadline) < new Date();
-              return (
-                <tr key={e._id} className={isLate ? "text-error" : ""}>
-                  <td>
-                    <Link
-                      to={`/evaluation/${e._id}`}
-                      className={`link ${isLate ? "text-error" : "link-primary"}`}
-                    >
-                      {e.evaluation?.filename || "—"}
-                    </Link>
-                  </td>
-                  <td>{new Date(e.date_assigned).toLocaleDateString()}</td>
-                  <td>{new Date(e.deadline).toLocaleDateString()}</td>
-                  <td>
-                    {e.completion_status ? (
-                      <span className="badge badge-success">Completed</span>
-                    ) : isLate ? (
-                      <span className="badge badge-error">Late</span>
-                    ) : (
-                      <span className="badge badge-warning">Pending</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
+            {evaluations.map((e) => (
+              <tr key={e.id || e._id}>
+                <td>
+                  <Link
+                    to={`/evaluation/${e.id || e._id}`}
+                    className="link link-primary"
+                  >
+                    {e.evaluation?.filename || "—"}
+                  </Link>
+                </td>
+                <td>{new Date(e.date_assigned).toLocaleDateString()}</td>
+                <td>{new Date(e.deadline).toLocaleDateString()}</td>
+                <td>
+                  {(e.completion_status || e.final_submitted) ? (
+                    <span className="badge badge-success">Completed</span>
+                  ) : e.status === "IN_PROGRESS" ? (
+                    <span className="badge badge-info">In Progress</span>
+                  ) : (
+                    <span className="badge badge-warning">Pending</span>
+                  )}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>

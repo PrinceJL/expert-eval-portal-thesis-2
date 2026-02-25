@@ -14,13 +14,18 @@ export const getAssignmentById = async (id) => {
 
 /* SUBMIT */
 export const submitEvaluation = async (id, payload) => {
-    const responses = payload.scores.map(s => ({
-        criteria_id: s.scoring,
-        score: s.score,
-        note: s.comments
-    }));
-    const res = await api.post(`/expert/assignments/${id}/submit`, {
-        responses
-    });
+    const res = await api.post(`/expert/assignments/${id}/submit`, payload);
+    return res.data;
+};
+
+/* DRAFT */
+export const saveEvaluationDraft = async (id, payload) => {
+    const res = await api.post(`/expert/assignments/${id}/draft`, payload);
+    return res.data;
+};
+
+/* DASHBOARD */
+export const getExpertDashboardStats = async () => {
+    const res = await api.get("/expert/stats");
     return res.data;
 };

@@ -21,6 +21,14 @@ const DEFAULT_BOOLEAN_CRITERIA = [
   { value: 1, criteria_name: 'Yes', description: 'Condition met' }
 ];
 
+function getEvaluationId(ev) {
+  return String(ev?.id || ev?._id || '').trim();
+}
+
+function getAssignmentId(a) {
+  return String(a?.id || a?._id || '').trim();
+}
+
 function normalizeCriteriaInput(criteria, { booleanMode = false } = {}) {
   if (!Array.isArray(criteria)) return [];
 
@@ -54,6 +62,7 @@ export default function AdminEvaluations() {
   const [scorings, setScorings] = useState([]);
   const [users, setUsers] = useState([]);
   const [assignments, setAssignments] = useState([]);
+  const [analytics, setAnalytics] = useState({ modelComparison: [], dimensionSummary: [] });
 
   // Create evaluation
   const [evalForm, setEvalForm] = useState({ filename: '', rag_version: '', jsonText: '' });
@@ -96,7 +105,6 @@ export default function AdminEvaluations() {
   });
 
   const [viewEval, setViewEval] = useState(null);
-  const [viewAssignment, setViewAssignment] = useState(null);
 
   const expertUsers = useMemo(() => users.filter((u) => u.role === 'EXPERT' && u.isActive), [users]);
   const isBooleanScoring = scoreForm.type === 'Boolean';
@@ -105,21 +113,62 @@ export default function AdminEvaluations() {
     setLoading(true);
     setError('');
     try {
-      const [evs, scs, us, asn] = await Promise.all([
+      const [evs, scs, us, asn, analyticsData] = await Promise.all([
         apiFetch('/admin/evaluations'),
         apiFetch('/admin/scorings'),
         apiFetch('/admin/users'),
-        apiFetch('/admin/assignments')
+        apiFetch('/admin/assignments'),
+        apiFetch('/admin/analytics')
       ]);
       setEvaluations(Array.isArray(evs) ? evs : []);
       setScorings(Array.isArray(scs) ? scs : []);
       setUsers(Array.isArray(us) ? us : []);
       setAssignments(Array.isArray(asn) ? asn : []);
+      setAnalytics({
+        modelComparison: Array.isArray(analyticsData?.modelComparison) ? analyticsData.modelComparison : [],
+        dimensionSummary: Array.isArray(analyticsData?.dimensionSummary) ? analyticsData.dimensionSummary : []
+      });
     } catch (e) {
       setError(e.message);
     } finally {
       setLoading(false);
     }
+  }
+
+  function exportAnalyticsCsv() {
+    const rows = [];
+    rows.push(['MODEL', 'VERSION', 'AVG_SCORE', 'COMPLETED', 'TOTAL', 'DISTRESS_FAILS', 'MAJOR_ERRORS']);
+    for (const model of analytics.modelComparison || []) {
+      rows.push([
+        model.modelName || '',
+        model.modelVersion || '',
+        model.avgScore ?? '',
+        model.completedAssignments ?? 0,
+        model.totalAssignments ?? 0,
+        model.distressFails ?? 0,
+        model.majorErrors ?? 0
+      ]);
+    }
+    rows.push([]);
+    rows.push(['DIMENSION', 'AVG_SCORE', 'RESPONSES']);
+    for (const dim of analytics.dimensionSummary || []) {
+      rows.push([
+        dim.dimensionName || '',
+        dim.avgScore ?? '',
+        dim.responses ?? 0
+      ]);
+    }
+
+    const csv = rows.map((line) => line.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `evaluation-analytics-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
   }
 
   useEffect(() => {
@@ -315,21 +364,17 @@ export default function AdminEvaluations() {
       ? `${assignForm.deadline_date}T${assignForm.deadline_time || '23:59'}`
       : '';
 
-    if (deadline) {
-      const selectedDate = new Date(deadline);
-      const now = new Date();
-      if (selectedDate <= now) {
-        setError('Deadline cannot be today or in the past.');
-        return;
-      }
-    }
-
     const payload = {
       user_assigned: assignForm.user_assigned,
       evaluation: assignForm.evaluation,
       evaluation_scorings: assignForm.scoringIds,
       ...(deadline ? { deadline } : {})
     };
+
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload.evaluation)) {
+      setError('Selected evaluation is invalid. Please reselect the evaluation and try again.');
+      return;
+    }
 
     try {
       await apiFetch('/admin/assignments', { method: 'POST', body: JSON.stringify(payload) });
@@ -651,9 +696,15 @@ export default function AdminEvaluations() {
                       <div className="admin-eval-select-wrap">
                         <select className="select select-bordered w-full admin-eval-field admin-eval-select" value={assignForm.evaluation} onChange={(e) => setAssignForm((p) => ({ ...p, evaluation: e.target.value }))} required>
                           <option value="">Choose...</option>
-                          {evaluations.map((ev) => (
-                            <option key={ev.id || ev._id} value={ev.id || ev._id}>{ev.filename} ({ev.items?.length || 0} items)</option>
-                          ))}
+                          {evaluations.map((ev) => {
+                            const evId = getEvaluationId(ev);
+                            if (!evId) return null;
+                            return (
+                              <option key={evId} value={evId}>
+                                {ev.filename} ({ev.items?.length || 0} items)
+                              </option>
+                            );
+                          })}
                         </select>
                         <span className="admin-eval-select-caret" aria-hidden="true">
                           <svg viewBox="0 0 20 20" width="14" height="14" fill="none">
@@ -669,10 +720,10 @@ export default function AdminEvaluations() {
                         {scorings.length === 0 && <p className="text-sm opacity-50 italic text-center py-4">No content yet.</p>}
                         {scorings.map((s) => (
                           <label
-                            key={s.id || s._id}
-                            className={`label cursor-pointer justify-start gap-3 hover:bg-base-200 rounded p-2 transition-colors admin-eval-scoring-item${assignForm.scoringIds.includes(s.id || s._id) ? ' admin-eval-scoring-item-selected' : ''}`}
+                            key={s._id}
+                            className={`label cursor-pointer justify-start gap-3 hover:bg-base-200 rounded p-2 transition-colors admin-eval-scoring-item${assignForm.scoringIds.includes(s._id) ? ' admin-eval-scoring-item-selected' : ''}`}
                           >
-                            <input type="checkbox" className="checkbox checkbox-sm checkbox-accent admin-eval-score-checkbox" checked={assignForm.scoringIds.includes(s.id || s._id)} onChange={() => toggleScoring(s.id || s._id)} />
+                            <input type="checkbox" className="checkbox checkbox-sm checkbox-accent admin-eval-score-checkbox" checked={assignForm.scoringIds.includes(s._id)} onChange={() => toggleScoring(s._id)} />
                             <div className="leading-tight">
                               <span className="font-semibold block">{s.dimension_name}</span>
                               <span className="text-xs opacity-60 block">{s.type} ({s.min_range}-{s.max_range})</span>
@@ -689,7 +740,6 @@ export default function AdminEvaluations() {
                           type="date"
                           className="input input-bordered w-full admin-eval-field admin-eval-deadline-date"
                           value={assignForm.deadline_date}
-                          min={new Date().toISOString().split('T')[0]}
                           onChange={(e) => setAssignForm((p) => ({ ...p, deadline_date: e.target.value }))}
                         />
                         <input
@@ -732,26 +782,26 @@ export default function AdminEvaluations() {
                         </tr>
                       </thead>
                       <tbody>
-                        {evaluations.map((ev) => (
-                          <tr key={ev.id || ev._id} className="hover">
+                        {evaluations.map((ev) => {
+                          const evId = getEvaluationId(ev) || `${ev.filename}-${fmtDate(ev.createdAt)}`;
+                          return (
+                          <tr key={evId} className="hover">
                             <td className="font-medium">{ev.filename}</td>
                             <td className="text-xs opacity-70">
-                              <div className="flex items-center gap-2">
-                                <div className="badge badge-ghost badge-sm">{ev.rag_version}</div>
-                                <span>{ev.items?.length || 0} items</span>
-                              </div>
+                              <div className="badge badge-ghost badge-sm mr-1">{ev.rag_version}</div>
+                              {ev.items?.length || 0} items
                             </td>
                             <td className="text-xs opacity-50">{fmtDate(ev.createdAt)}</td>
                             <td>
                               <button
-                                className="btn btn-xs btn-ghost border border-base-300 whitespace-nowrap"
+                                className="btn btn-xs btn-ghost border border-base-300"
                                 onClick={() => setViewEval(ev)}
                               >
                                 View Items
                               </button>
                             </td>
                           </tr>
-                        ))}
+                        )})}
                         {!evaluations.length && <tr><td colSpan="3" className="text-center opacity-50 py-4">No data</td></tr>}
                       </tbody>
                     </table>
@@ -773,39 +823,101 @@ export default function AdminEvaluations() {
                           <th>Evaluation</th>
                           <th>Assignee</th>
                           <th>Status</th>
-                          <th>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
                         {assignments.map((a) => (
-                          <tr key={a.id || a._id} className="hover">
+                          <tr key={getAssignmentId(a) || `${a?.evaluation?.filename || 'assignment'}-${a?.deadline || ''}`} className="hover">
                             <td className="font-medium truncate max-w-[150px]" title={a?.evaluation?.filename}>
                               {a?.evaluation?.filename || 'Unknown'}
                             </td>
                             <td>
-                              <div className="tooltip" data-tip={a?.user?.username || a?.user_assigned}>
-                                {a?.user?.username || 'Unknown'}
+                              <div className="tooltip" data-tip={a.user_assigned}>
+                                {expertUsers.find(u => u.id === a.user_assigned)?.username || a.user_assigned}
                               </div>
                               <div className="text-[10px] opacity-50">Deadline: {fmtDate(a.deadline)}</div>
                             </td>
                             <td>
-                              {a.status === 'COMPLETED' ? (
-                                <span className="badge badge-success badge-sm">Completed</span>
+                              {a.final_submitted ? (
+                                <span className="badge badge-success badge-sm">Submitted</span>
+                              ) : a.status === 'IN_PROGRESS' ? (
+                                <span className="badge badge-info badge-sm">In Progress</span>
+                              ) : a.completion_status ? (
+                                <span className="badge badge-warning badge-sm">Done (Unsent)</span>
                               ) : (
-                                <span className="badge badge-ghost badge-sm">In Progress</span>
+                                <span className="badge badge-ghost badge-sm">Pending</span>
                               )}
-                            </td>
-                            <td>
-                              <button
-                                className="btn btn-xs btn-ghost border border-base-300 whitespace-nowrap"
-                                onClick={() => setViewAssignment(a)}
-                              >
-                                View Details
-                              </button>
                             </td>
                           </tr>
                         ))}
-                        {!assignments.length && <tr><td colSpan="4" className="text-center opacity-50 py-4">No data</td></tr>}
+                        {!assignments.length && <tr><td colSpan="3" className="text-center opacity-50 py-4">No data</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="card bg-base-100 shadow-lg border border-base-200 mt-6">
+              <div className="card-body p-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="card-title text-lg">Thesis Analytics and Multi-Model Comparison</h3>
+                  <button type="button" className="btn btn-sm btn-outline" onClick={exportAnalyticsCsv}>
+                    Export CSV
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-4">
+                  <div className="overflow-x-auto rounded-xl border border-base-300">
+                    <table className="table table-compact w-full">
+                      <thead>
+                        <tr>
+                          <th>Model</th>
+                          <th>Version</th>
+                          <th>Avg Score</th>
+                          <th>Completed</th>
+                          <th>Distress Fail</th>
+                          <th>Major Error</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(analytics.modelComparison || []).map((row) => (
+                          <tr key={`${row.modelName}-${row.modelVersion}`}>
+                            <td className="font-medium">{row.modelName}</td>
+                            <td>{row.modelVersion}</td>
+                            <td>{row.avgScore ?? '-'}</td>
+                            <td>{row.completedAssignments}/{row.totalAssignments}</td>
+                            <td>{row.distressFails}</td>
+                            <td>{row.majorErrors}</td>
+                          </tr>
+                        ))}
+                        {!analytics.modelComparison?.length ? (
+                          <tr><td colSpan="6" className="text-center opacity-60 py-4">No submitted evaluations yet.</td></tr>
+                        ) : null}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="overflow-x-auto rounded-xl border border-base-300">
+                    <table className="table table-compact w-full">
+                      <thead>
+                        <tr>
+                          <th>Dimension</th>
+                          <th>Avg Score</th>
+                          <th>Responses</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(analytics.dimensionSummary || []).map((row) => (
+                          <tr key={row.dimensionName}>
+                            <td className="font-medium">{row.dimensionName}</td>
+                            <td>{row.avgScore ?? '-'}</td>
+                            <td>{row.responses}</td>
+                          </tr>
+                        ))}
+                        {!analytics.dimensionSummary?.length ? (
+                          <tr><td colSpan="3" className="text-center opacity-60 py-4">No dimension data yet.</td></tr>
+                        ) : null}
                       </tbody>
                     </table>
                   </div>
@@ -813,75 +925,6 @@ export default function AdminEvaluations() {
               </div>
             </div>
           </div>
-        )}
-
-        {viewAssignment && (
-          <dialog className="modal modal-open animate-fade-in">
-            <div className="modal-box max-w-2xl">
-              <h3 className="font-bold text-lg mb-4 flex justify-between items-center">
-                <span>Assignment Details</span>
-                <button className="btn btn-sm btn-circle btn-ghost" onClick={() => setViewAssignment(null)}>✕</button>
-              </h3>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="text-xs font-bold opacity-50 uppercase tracking-wide">Evaluation</label>
-                  <p className="text-base font-medium">{viewAssignment?.evaluation?.filename || 'Unknown'}</p>
-                  <p className="text-sm opacity-70">Version: {viewAssignment?.evaluation?.rag_version || 'v1.0'}</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs font-bold opacity-50 uppercase tracking-wide">Assignee</label>
-                    <p className="text-base font-medium">{viewAssignment?.user?.username || 'Unknown'}</p>
-                    <p className="text-sm opacity-70">{viewAssignment?.user?.email || ''}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold opacity-50 uppercase tracking-wide">Status</label>
-                    <p className="mt-1">
-                      {viewAssignment?.status === 'COMPLETED' ? (
-                        <span className="badge badge-success">Completed</span>
-                      ) : (
-                        <span className="badge badge-ghost">In Progress</span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs font-bold opacity-50 uppercase tracking-wide">Deadline</label>
-                    <p className="text-base">{fmtDate(viewAssignment?.deadline)}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold opacity-50 uppercase tracking-wide">Assigned On</label>
-                    <p className="text-base">{fmtDate(viewAssignment?.assigned_at)}</p>
-                  </div>
-                </div>
-
-                <div className="mt-6 border-t border-base-200 pt-4">
-                  <label className="text-xs font-bold opacity-50 uppercase tracking-wide block mb-2">Enabled Dimensions</label>
-                  {scorings.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {scorings.map((s) => (
-                        <div key={s.id || s._id} className="badge badge-primary badge-outline flex gap-1 p-3">
-                          <span className="font-semibold">{s.dimension_name}</span>
-                          <span className="opacity-60 text-xs text-base-content/60 lowercase">({s.type})</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm opacity-50">No Global Dimensions Set</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="modal-action mt-6">
-                <button className="btn" onClick={() => setViewAssignment(null)}>Close</button>
-              </div>
-            </div>
-            <div className="modal-backdrop bg-black/20" onClick={() => setViewAssignment(null)}></div>
-          </dialog>
         )}
 
         {viewEval && (
