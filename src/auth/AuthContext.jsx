@@ -102,6 +102,9 @@ export function AuthProvider({ children }) {
       if ((now - lastHeartbeatSentAt.current) < PRESENCE_ACTIVITY_THROTTLE_MS) return;
     }
 
+    // Update timestamp immediately to prevent concurrent calls during the await
+    lastHeartbeatSentAt.current = now;
+
     try {
       const data = await apiFetch('/auth/heartbeat', {
         method: 'POST',
@@ -111,7 +114,6 @@ export function AuthProvider({ children }) {
         localStorage.setItem('accessToken', data.accessToken);
         setToken(data.accessToken);
       }
-      lastHeartbeatSentAt.current = now;
     } catch {
       // Ignore transient heartbeat failures.
     }

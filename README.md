@@ -14,7 +14,7 @@ Ensure you have the following installed:
 
 ## Global Deployment (Vercel)
 You can access the deployed application here:
-**Link:** [https://testing-portal-9buohs1xw-clefts-projects.vercel.app/admin/evaluations](https://testing-portal-9buohs1xw-clefts-projects.vercel.app/admin/evaluations)
+**Link:** [https://team-404-expert-portal.vercel.app](https://team-404-expert-portal.vercel.app)
 
 ### Test Credentials
 Use the following credentials to log in:
