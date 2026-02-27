@@ -1,8 +1,40 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { Button, IconButton, ButtonGroup, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 import { getAssignmentById, saveEvaluationDraft, submitEvaluation } from "../api/expert";
-import { ExpandMore, ExpandLess } from "@mui/icons-material";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  ButtonGroup,
+  IconButton,
+  Typography,
+  Collapse,
+  MenuItem,
+  TextField,
+  Slider,
+  ToggleButton,
+  ToggleButtonGroup,
+  Checkbox,
+  FormControlLabel
+} from "@mui/material";
+
+import {
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  Star,
+  EditNote,
+  Close,
+  InfoOutlined,
+  ExpandMore,
+  ExpandLess,
+  ReportProblemOutlined,
+  Edit
+} from "@mui/icons-material";
+
+import Rating from "@mui/material/Rating";
 
 const ERROR_LEVEL_OPTIONS = ["none", "minor", "moderate", "major"];
 
@@ -33,6 +65,16 @@ export default function EvaluationPage() {
 
   const [errorLevel, setErrorLevel] = useState("none");
   const [errorDescription, setErrorDescription] = useState("");
+
+  const [openScoreDialog, setOpenScoreDialog] = useState(false);
+  const [openErrorDialog, setOpenErrorDialog] = useState(false);
+  const [showCriteria, setShowCriteria] = useState(false);
+  const [tempScore, setTempScore] = useState(null);
+  const [tempNotes, setTempNotes] = useState("");
+  const hasError =
+    errorLevel !== "none" ||
+    distressResult === "FAIL";
+
 
   const loadAssignment = async () => {
     const data = await getAssignmentById(id);
@@ -188,6 +230,59 @@ export default function EvaluationPage() {
     }
   };
 
+  // For mobile swipe navigation (testing)
+  const [touchStartX, setTouchStartX] = useState(null);
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const handleTouchStart = (e) => {
+    setTouchStartX(e.touches[0].clientX);
+  };
+
+  const handleTouchMove = (e) => {
+    if (touchStartX === null) return;
+    const currentX = e.touches[0].clientX;
+    setSwipeOffset(currentX - touchStartX);
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartX === null) return;
+
+    if (swipeOffset > 80 && dimensionIndex > 0) {
+      handlePrev();
+    } else if (swipeOffset < -80 && dimensionIndex < evaluationScorings.length - 1 && hasCurrentScore) {
+      handleNext();
+    }
+
+    setSwipeOffset(0);
+    setTouchStartX(null);
+  };
+
+  const handleNext = () => {
+    if (dimensionIndex < evaluationScorings.length - 1) {
+      setDimensionIndex(prev => prev + 1);
+    }
+  };
+
+  const handlePrev = () => {
+    if (dimensionIndex > 0) {
+      setDimensionIndex(prev => prev - 1);
+    }
+  };
+
+  const getScoringType = () => {
+    if (!currentScoring) return null;
+
+    if (currentScoring.type === "Boolean") return "boolean";
+    if ((currentScoring.max_score ?? 5) <= 5) return "star";
+    return "range";
+  };
+
+  const openDialog = () => {
+    const existingScore = normalizeScoreValue(scores[currentScoring?._id]);
+    setTempScore(existingScore ?? null);
+    setTempNotes(notes[currentScoring?._id] ?? "");
+    setOpenScoreDialog(true);
+  };
+
   if (!assignment) {
     return (
       <div className="flex h-screen bg-base-100 font-sans">
@@ -199,7 +294,7 @@ export default function EvaluationPage() {
               <span className="app-skeleton mt-6 h-36 w-full rounded-xl" />
             </div>
             <div className="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-xl">
-              <span className="app-skeleton h-8 w-56" />
+              <span className="app-skeleton max-h-8 w-56" />
               <span className="app-skeleton mt-4 h-12 w-full rounded-lg" />
               <span className="app-skeleton mt-3 h-12 w-full rounded-lg" />
               <span className="app-skeleton mt-3 h-12 w-full rounded-lg" />
@@ -233,8 +328,14 @@ export default function EvaluationPage() {
 
   return (
     <div className="flex flex-col lg:flex-row w-full lg:overflow-hidden bg-base-100 font-sans lg:h-[calc(100vh-65px)] min-h-[calc(100vh-65px)]">
-      <div className="flex flex-col lg:flex-row lg:flex-1 h-auto lg:h-full relative">
-        <div className="flex-1 lg:overflow-y-auto p-4 sm:p-8 scroll-smooth">
+      <div className="flex flex-col lg:flex-row lg:flex-1 h-auto lg:min-h-screen relative">
+        <div
+          className="flex-1 lg:overflow-y-auto p-4 sm:p-8 scroll-smooth pb-24 lg:pb-0 transition-transform duration-300"
+          style={{ transform: `translateX(${swipeOffset}px)` }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
           <div className="max-w-4xl mx-auto w-full pb-10 space-y-6">
             <Typography variant="h5" className="font-bold text-2xl border-b pb-4 border-base-300">
               {assignment?.evaluation?.filename} - <span className="text-primary">{currentScoring?.dimension_name}</span>
@@ -281,7 +382,7 @@ export default function EvaluationPage() {
         </div>
       </div>
 
-      <div className="flex lg:h-full w-full lg:w-[450px] flex-col lg:overflow-hidden border-t lg:border-t-0 lg:border-l border-base-300 bg-base-100 shadow-xl">
+      <div className="hidden lg:flex lg:h-full w-full lg:w-[450px] flex-col lg:overflow-hidden border-t lg:border-t-0 lg:border-l border-base-300 bg-base-100 shadow-xl">
         <div className="flex-1 lg:overflow-y-auto p-5 sm:p-6 flex flex-col gap-5">
           {isLocked ? (
             <div className="space-y-6">
@@ -539,6 +640,340 @@ export default function EvaluationPage() {
           )}
         </div>
       </div>
+      {/* MOBILE BAR */}
+      <div className="lg:hidden sticky bottom-0 left-0 right-0 bg-base-100 border-t border-base-300 shadow-lg z-50 transition-transform duration-300"
+        style={{ transform: `translateX(${swipeOffset}px)` }}
+      >
+        <div className="flex items-center justify-between px-3 py-2">
+
+          {/* Previous */}
+          <button
+            className={`btn btn-ghost h-12 min-h-12 px-4 ${dimensionIndex === 0 ? "opacity-40 pointer-events-none" : ""
+              }`}
+            onClick={handlePrev}
+          >
+            <ChevronLeft fontSize="medium" />
+          </button>
+
+          {/* Score */}
+          <button
+            className={`btn h-12 min-h-12 flex-1 ${hasCurrentScore ? "btn-success" : "btn-outline"
+              }`}
+            onClick={openDialog}
+          >
+            <Star fontSize="medium" />
+            <span className="ml-2 text-sm font-semibold">
+              {hasCurrentScore ? "Scored" : "Score"}
+            </span>
+          </button>
+
+          {/* Report Error */}
+          <button
+            className={`btn btn-ghost h-12 min-h-12 px-4 ${hasError ? "text-error" : ""
+              }`}
+            onClick={() => setOpenErrorDialog(true)}
+          >
+            <ReportProblemOutlined fontSize="medium" />
+          </button>
+
+          {/* Next / Submit */}
+          {isFinalDimension ? (
+            <button
+              className={`btn h-12 min-h-12 px-4 ${hasCurrentScore ? "btn-primary" : "btn-disabled opacity-40"
+                }`}
+              disabled={!hasCurrentScore}
+              onClick={handleSubmitFinal}
+            >
+              <Check fontSize="medium" />
+            </button>
+          ) : (
+            <button
+              className={`btn btn-ghost h-12 min-h-12 px-4 ${!hasCurrentScore ? "opacity-40 pointer-events-none" : ""
+                }`}
+              onClick={handleNext}
+            >
+              <ChevronRight fontSize="medium" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {
+        openScoreDialog && (<Dialog
+          open={openScoreDialog}
+          onClose={() => setOpenScoreDialog(false)}
+          fullWidth
+          maxWidth="sm"
+        >
+          <DialogTitle className="flex justify-between items-center">
+            <div>
+              <Typography variant="h6">
+                {currentScoring?.dimension_name}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Score this dimension
+              </Typography>
+            </div>
+
+            <IconButton onClick={() => setOpenScoreDialog(false)}>
+              <Close />
+            </IconButton>
+          </DialogTitle>
+
+          <DialogContent dividers>
+
+            {/* === SCORING INPUT === */}
+            {getScoringType() === "star" && (
+              <div className="flex justify-center py-4">
+                <Rating
+                  value={tempScore}
+                  onChange={(e, newValue) => setTempScore(newValue)}
+                  size="large"
+                />
+              </div>
+            )}
+
+            {getScoringType() === "boolean" && (
+              <div className="flex justify-center py-4">
+                <ToggleButtonGroup
+                  exclusive
+                  value={tempScore}
+                  onChange={(e, val) => setTempScore(val)}
+                >
+                  <ToggleButton value={1} color="success">
+                    True
+                  </ToggleButton>
+                  <ToggleButton value={0} color="error">
+                    False
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              </div>
+            )}
+
+            {getScoringType() === "range" && (
+              <div className="space-y-4 py-4">
+                <Slider
+                  value={tempScore ?? currentScoring.min_score}
+                  min={currentScoring.min_score}
+                  max={currentScoring.max_score}
+                  step={1}
+                  valueLabelDisplay="on"
+                  onChange={(e, val) => setTempScore(val)}
+                />
+
+                <TextField
+                  type="number"
+                  fullWidth
+                  label="Score"
+                  value={tempScore ?? ""}
+                  inputProps={{
+                    min: currentScoring.min_score,
+                    max: currentScoring.max_score
+                  }}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+
+                    if (
+                      val >= currentScoring.min_score &&
+                      val <= currentScoring.max_score
+                    ) {
+                      setTempScore(val);
+                    }
+                  }}
+                />
+              </div>
+            )}
+
+            {/* === DESCRIPTION / CRITERIA TOGGLE === */}
+            <div className="mt-6">
+              <Button
+                startIcon={showCriteria ? <ExpandLess /> : <ExpandMore />}
+                onClick={() => setShowCriteria(prev => !prev)}
+              >
+                {showCriteria ? "Hide Criteria" : "Show Criteria"}
+              </Button>
+
+              <Collapse in={showCriteria}>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  className="mt-3"
+                >
+                  {currentScoring?.dimension_description || "No description available."}
+                </Typography>
+              </Collapse>
+            </div>
+
+            {/* === NOTES INPUT === */}
+            <div className="mt-6">
+              <TextField
+                fullWidth
+                multiline
+                minRows={3}
+                label="Notes (optional)"
+                value={tempNotes}
+                onChange={(e) => setTempNotes(e.target.value)}
+              />
+            </div>
+
+          </DialogContent>
+
+          <DialogActions>
+            <Button onClick={() => setOpenScoreDialog(false)}>
+              Cancel
+            </Button>
+
+            <Button
+              variant="contained"
+              disabled={tempScore === null}
+              onClick={() => {
+                setScores(prev => ({
+                  ...prev,
+                  [currentScoring._id]: tempScore
+                }));
+
+                setNotes(prev => ({
+                  ...prev,
+                  [currentScoring._id]: tempNotes
+                }));
+
+                setOpenScoreDialog(false);
+
+                if (!isFinalDimension) {
+                  setSwipeOffset(-100);
+                  setTimeout(() => {
+                    handleNext();
+                    setSwipeOffset(0);
+                  }, 200);
+                }
+              }}
+            >
+              {isFinalDimension ? "Save" : "Save & Continue"}
+            </Button>
+          </DialogActions>
+        </Dialog>)
+      }
+      {openErrorDialog && (
+        <Dialog
+          open={openErrorDialog}
+          onClose={() => setOpenErrorDialog(false)}
+        >
+          <Dialog
+            open={openErrorDialog}
+            onClose={() => setOpenErrorDialog(false)}
+            fullWidth
+            maxWidth="sm"
+          >
+            <DialogTitle>
+              Report Error / Distress Detection
+            </DialogTitle>
+
+            <DialogContent dividers className="space-y-6">
+
+              {/* === DISTRESS DETECTION === */}
+              <div className="space-y-3">
+                <Typography variant="subtitle2" fontWeight={600}>
+                  Distress Detection (Pass/Fail)
+                </Typography>
+
+                {highRiskRequired && (
+                  <Typography variant="caption" color="warning.main">
+                    High-risk case detected. Distress detection is required.
+                  </Typography>
+                )}
+
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={distressApplicable}
+                      disabled={isLocked}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setDistressApplicable(checked);
+                        if (!checked) setDistressResult("N/A");
+                      }}
+                    />
+                  }
+                  label="This case is high-risk and requires distress detection"
+                />
+
+                <ToggleButtonGroup
+                  exclusive
+                  fullWidth
+                  value={distressResult}
+                  disabled={isLocked}
+                  onChange={(e, val) => {
+                    if (!val) return;
+                    setDistressApplicable(true);
+                    setDistressResult(val);
+                  }}
+                >
+                  <ToggleButton value="PASS" color="success">
+                    PASS
+                  </ToggleButton>
+                  <ToggleButton value="FAIL" color="error">
+                    FAIL
+                  </ToggleButton>
+                </ToggleButtonGroup>
+
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={2}
+                  label="Distress Notes (optional)"
+                  value={distressNotes}
+                  disabled={isLocked}
+                  onChange={(e) => setDistressNotes(e.target.value)}
+                />
+              </div>
+
+              {/* === ERROR SEVERITY === */}
+              <div className="space-y-3">
+                <Typography variant="subtitle2" fontWeight={600}>
+                  Error Severity
+                </Typography>
+
+                <TextField
+                  select
+                  fullWidth
+                  value={errorLevel}
+                  disabled={isLocked}
+                  onChange={(e) => setErrorLevel(e.target.value)}
+                >
+                  {ERROR_LEVEL_OPTIONS.map((level) => (
+                    <MenuItem key={level} value={level}>
+                      {level.toUpperCase()}
+                    </MenuItem>
+                  ))}
+                </TextField>
+
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={2}
+                  label="Describe notable errors (optional)"
+                  value={errorDescription}
+                  disabled={isLocked}
+                  onChange={(e) => setErrorDescription(e.target.value)}
+                />
+
+                {errorLevel === "major" && (
+                  <Typography variant="caption" color="error">
+                    Major severity is marked as score override in the final submission.
+                  </Typography>
+                )}
+              </div>
+
+            </DialogContent>
+
+            <DialogActions>
+              <Button onClick={() => setOpenErrorDialog(false)}>
+                Close
+              </Button>
+            </DialogActions>
+          </Dialog>
+        </Dialog>)
+      }
     </div>
   );
 }

@@ -12,7 +12,7 @@
         "seed:admin": "node scripts/seed_admin.js",
         "build:server": "echo 'Building server...'",
         "dev:server": "nodemon api/index.js",
-        "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\""
+        "dev:all": "concurrently \"npm run dev -- --host 0.0.0.0\" \"npm run dev:server -- --host 0.0.0.0\""
     },
     "dependencies": {
         "@emotion/react": "^11.14.0",
