@@ -255,6 +255,66 @@ async function createScoring(req, res) {
   }
 }
 
+async function updateScoring(req, res) {
+  try {
+    const { id } = req.params;
+    const { dimension_name, dimension_description, type, min_range, max_range, criteria } = req.body;
+
+    const scoring = await scoringService.getScoringsByIds([id]);
+    if (!scoring || !scoring.length) {
+      return res.status(404).json({ error: "Dimension not found" });
+    }
+
+    const updates = {};
+    if (dimension_name !== undefined) updates.dimension_name = dimension_name.trim();
+    if (dimension_description !== undefined) updates.dimension_description = dimension_description.trim();
+
+    const newType = type || scoring[0].type;
+    const booleanMode = newType === "Boolean";
+
+    if (type !== undefined) updates.type = newType;
+
+    let min = booleanMode ? 0 : (min_range !== undefined ? Number(min_range) : scoring[0].min_range);
+    let max = booleanMode ? 1 : (max_range !== undefined ? Number(max_range) : scoring[0].max_range);
+
+    if (!booleanMode && (!Number.isFinite(min) || !Number.isFinite(max) || min > max)) {
+      return res.status(400).json({ error: "Invalid min_range and max_range" });
+    }
+
+    updates.min_range = min;
+    updates.max_range = max;
+
+    if (criteria !== undefined) {
+      let nextCriteria = normalizeScoringCriteria(criteria || [], { booleanMode });
+      if (booleanMode) {
+        const byValue = new Map();
+        for (const c of nextCriteria) {
+          if (c.value === 0 || c.value === 1) byValue.set(c.value, c);
+        }
+        if (!byValue.has(0)) byValue.set(0, DEFAULT_BOOLEAN_CRITERIA[0]);
+        if (!byValue.has(1)) byValue.set(1, DEFAULT_BOOLEAN_CRITERIA[1]);
+        nextCriteria = [byValue.get(0), byValue.get(1)];
+      }
+      updates.criteria = nextCriteria;
+    }
+
+    const updated = await scoringService.updateScoring(id, updates);
+    res.json(updated);
+  } catch (e) {
+    res.status(400).json({ error: e.message || "Failed to update scoring" });
+  }
+}
+
+async function deleteScoring(req, res) {
+  try {
+    const { id } = req.params;
+    await scoringService.deleteScoring(id);
+    res.json({ message: "Dimension deleted" });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to delete dimension" });
+  }
+}
+
 // ------------------ EVALUATIONS ------------------
 
 async function listEvaluations(req, res) {
@@ -349,6 +409,7 @@ async function listAssignments(req, res) {
   try {
     const where = {};
     if (req.query.user_assigned) where.user_id = req.query.user_assigned;
+    if (req.query.group) where.group = req.query.group;
 
     const assignments = await sql.EvaluationAssignment.findAll({
       where,
@@ -379,6 +440,7 @@ async function listAssignments(req, res) {
 
       return {
         id: a.id,
+        group: a.group,
         user_assigned: a.user_id,
         user: a.user,
         evaluation: {
@@ -407,24 +469,18 @@ async function listAssignments(req, res) {
 
 async function createAssignment(req, res) {
   try {
-    const { user_assigned, evaluation, evaluation_scorings = [], deadline } = req.body;
-    // user_assigned = user_id
+    const { group, evaluation, evaluation_scorings = [], deadline } = req.body;
+    // group = organization name string
     // evaluation = output_id
 
-    if (!user_assigned || !evaluation) {
-      return res.status(400).json({ error: "Missing user_assigned or evaluation ID" });
+    if (!group || !evaluation) {
+      return res.status(400).json({ error: "Missing group or evaluation ID" });
     }
     if (!Array.isArray(evaluation_scorings) || evaluation_scorings.length === 0) {
       return res.status(400).json({ error: "Please assign at least one scoring dimension." });
     }
 
-    const [assignedUser, evaluationOutput] = await Promise.all([
-      sql.User.findByPk(user_assigned),
-      sql.EvaluationOutput.findByPk(evaluation)
-    ]);
-    if (!assignedUser) {
-      return res.status(400).json({ error: "Selected expert user does not exist." });
-    }
+    const evaluationOutput = await sql.EvaluationOutput.findByPk(evaluation);
     if (!evaluationOutput) {
       return res.status(400).json({ error: "Selected evaluation does not exist." });
     }
@@ -457,7 +513,8 @@ async function createAssignment(req, res) {
     });
 
     const assignment = await sql.EvaluationAssignment.create({
-      user_id: user_assigned,
+      group: group,
+      user_id: null,
       output_id: evaluation,
       deadline: deadline ? new Date(deadline) : null,
       status: 'PENDING',
@@ -471,13 +528,17 @@ async function createAssignment(req, res) {
 
     // Notification
     try {
-      await notificationService.createNotification(
-        String(user_assigned),
-        "assignment",
-        "New evaluation assigned",
-        "You have a new evaluation assignment.",
-        { assignmentId: assignment.id }
-      );
+      // Find all users in the group and notify them
+      const groupUsers = await sql.User.findAll({ where: { group: group } });
+      for (const user of groupUsers) {
+        await notificationService.createNotification(
+          String(user.id),
+          "assignment",
+          "New evaluation assigned",
+          `Your group (${group}) has a new evaluation assignment.`,
+          { assignmentId: assignment.id }
+        );
+      }
     } catch (err) {
       console.error("Notification error:", err);
     }
@@ -740,6 +801,8 @@ module.exports = {
   // scorings
   listScorings,
   createScoring,
+  updateScoring,
+  deleteScoring,
   // evaluations
   listEvaluations,
   createEvaluation,

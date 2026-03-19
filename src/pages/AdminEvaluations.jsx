@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../lib/api';
+import { PencilIcon, TrashIcon } from 'lucide-react';
 
 function fmtDate(d) {
   if (!d) return '-';
@@ -64,6 +65,8 @@ export default function AdminEvaluations() {
   const [assignments, setAssignments] = useState([]);
   const [analytics, setAnalytics] = useState({ modelComparison: [], dimensionSummary: [] });
 
+  const [editingDimension, setEditingDimension] = useState(null);
+
   // Create evaluation
   const [evalForm, setEvalForm] = useState({ filename: '', rag_version: '', jsonText: '' });
   const [activeTab, setActiveTab] = useState('json');
@@ -85,19 +88,20 @@ export default function AdminEvaluations() {
     });
   }
 
-  // Create scoring
-  const [scoreForm, setScoreForm] = useState({
+  // Create/Edit scoring
+  const initialScoreForm = {
     dimension_name: '',
     dimension_description: '',
     type: 'Likert',
     min_range: 1,
     max_range: 5,
     criteriaJson: ''
-  });
+  };
+  const [scoreForm, setScoreForm] = useState(initialScoreForm);
 
   // Create assignment
   const [assignForm, setAssignForm] = useState({
-    user_assigned: '',
+    group: '',
     evaluation: '',
     scoringIds: [],
     deadline_date: '',
@@ -107,6 +111,10 @@ export default function AdminEvaluations() {
   const [viewEval, setViewEval] = useState(null);
 
   const expertUsers = useMemo(() => users.filter((u) => u.role === 'EXPERT' && u.isActive), [users]);
+  const activeGroups = useMemo(() => {
+    const orgs = new Set(users.filter(u => u.isActive && u.group).map(u => u.group));
+    return Array.from(orgs).sort();
+  }, [users]);
   const isBooleanScoring = scoreForm.type === 'Boolean';
 
   async function loadAll() {
@@ -332,12 +340,53 @@ export default function AdminEvaluations() {
     }
 
     try {
-      await apiFetch('/admin/scorings', { method: 'POST', body: JSON.stringify(payload) });
-      setMsg('Scoring dimension created.');
-      setScoreForm({ dimension_name: '', dimension_description: '', type: 'Likert', min_range: 1, max_range: 5, criteriaJson: '' });
+      if (editingDimension) {
+        await apiFetch(`/admin/scorings/${editingDimension._id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+        setMsg('Scoring dimension updated.');
+      } else {
+        await apiFetch('/admin/scorings', { method: 'POST', body: JSON.stringify(payload) });
+        setMsg('Scoring dimension created.');
+      }
+      setScoreForm(initialScoreForm);
+      setEditingDimension(null);
       await loadAll();
     } catch (e2) {
       setError(e2.message);
+    }
+  }
+
+  function handleEditDimension(dim) {
+    setEditingDimension(dim);
+    setScoreForm({
+      dimension_name: dim.dimension_name || '',
+      dimension_description: dim.dimension_description || '',
+      type: dim.type || 'Likert',
+      min_range: dim.min_range ?? 1,
+      max_range: dim.max_range ?? 5,
+      criteriaJson: dim.criteria ? JSON.stringify(dim.criteria, null, 2) : ''
+    });
+    // Scroll to form smoothly
+    document.getElementById('dimension-form-card')?.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function cancelEditDimension() {
+    setEditingDimension(null);
+    setScoreForm(initialScoreForm);
+  }
+
+  async function handleDeleteDimension(id) {
+    if (!window.confirm("Are you sure you want to delete this dimension? Any assignments using it might be affected.")) return;
+    setMsg('');
+    setError('');
+    try {
+      await apiFetch(`/admin/scorings/${id}`, { method: 'DELETE' });
+      setMsg('Scoring dimension deleted.');
+      if (editingDimension?._id === id) {
+        cancelEditDimension();
+      }
+      await loadAll();
+    } catch (e) {
+      setError(e.message);
     }
   }
 
@@ -355,8 +404,8 @@ export default function AdminEvaluations() {
     setMsg('');
     setError('');
 
-    if (!assignForm.user_assigned || !assignForm.evaluation || !assignForm.scoringIds.length) {
-      setError('Choose an expert, evaluation, and at least one scoring dimension');
+    if (!assignForm.group || !assignForm.evaluation || !assignForm.scoringIds.length) {
+      setError('Choose a group, evaluation, and at least one scoring dimension');
       return;
     }
 
@@ -365,7 +414,7 @@ export default function AdminEvaluations() {
       : '';
 
     const payload = {
-      user_assigned: assignForm.user_assigned,
+      group: assignForm.group,
       evaluation: assignForm.evaluation,
       evaluation_scorings: assignForm.scoringIds,
       ...(deadline ? { deadline } : {})
@@ -379,7 +428,7 @@ export default function AdminEvaluations() {
     try {
       await apiFetch('/admin/assignments', { method: 'POST', body: JSON.stringify(payload) });
       setMsg('Assignment created.');
-      setAssignForm({ user_assigned: '', evaluation: '', scoringIds: [], deadline_date: '', deadline_time: '' });
+      setAssignForm({ group: '', evaluation: '', scoringIds: [], deadline_date: '', deadline_time: '' });
       await loadAll();
     } catch (e2) {
       setError(e2.message);
@@ -445,6 +494,17 @@ export default function AdminEvaluations() {
                   </div>
                 </div>
               ))}
+              <div className="card bg-base-100 shadow-xl border border-base-200">
+                <div className="card-body">
+                  <div className="flex items-center justify-between">
+                    <span className="app-skeleton h-7 w-36" />
+                    <span className="app-skeleton h-5 w-20" />
+                  </div>
+                  <span className="app-skeleton h-10 w-full rounded-lg" />
+                  <span className="app-skeleton h-10 w-full rounded-lg" />
+                  <span className="app-skeleton h-10 w-full rounded-lg" />
+                </div>
+              </div>
             </div>
             <div className="flex justify-center py-2">
               <span className="modern-loader modern-loader-sm" role="status" aria-label="Loading evaluation dashboard"></span>
@@ -559,13 +619,20 @@ export default function AdminEvaluations() {
                 </div>
               </div>
 
-              {/* CARD 2: Create Scoring */}
-              <div className="card bg-base-100 shadow-xl border border-base-200 hover:shadow-2xl transition-all duration-300 admin-eval-card admin-eval-card-dimension">
+              {/* CARD 2: Create/Edit Scoring */}
+              <div id="dimension-form-card" className="card bg-base-100 shadow-xl border border-base-200 hover:shadow-2xl transition-all duration-300 admin-eval-card admin-eval-card-dimension">
                 <div className="card-body">
-                  <h2 className="card-title text-secondary">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                    Create Dimension
-                  </h2>
+                  <div className="flex justify-between items-center">
+                    <h2 className="card-title text-secondary">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                      {editingDimension ? 'Edit Dimension' : 'Create Dimension'}
+                    </h2>
+                    {editingDimension && (
+                      <button type="button" className="btn btn-ghost btn-xs text-error" onClick={cancelEditDimension}>
+                        Cancel
+                      </button>
+                    )}
+                  </div>
                   <div className="division h-px bg-base-200 my-2"></div>
 
                   <form onSubmit={createScoring} className="space-y-3">
@@ -659,7 +726,9 @@ export default function AdminEvaluations() {
                     </div>
 
                     <div className="card-actions justify-end mt-4">
-                      <button className="btn btn-secondary w-full admin-eval-submit-btn" type="submit">Create Dimension</button>
+                      <button className="btn btn-secondary w-full admin-eval-submit-btn" type="submit">
+                        {editingDimension ? 'Update Dimension' : 'Create Dimension'}
+                      </button>
                     </div>
                   </form>
                 </div>
@@ -670,18 +739,18 @@ export default function AdminEvaluations() {
                 <div className="card-body">
                   <h2 className="card-title text-accent">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                    Assign to Expert
+                    Assign to Organization
                   </h2>
                   <div className="division h-px bg-base-200 my-2"></div>
 
                   <form onSubmit={createAssignment} className="space-y-4">
                     <div className="form-control">
-                      <label className="label"><span className="label-text font-medium">Select Expert</span></label>
+                      <label className="label"><span className="label-text font-medium">Select Organization</span></label>
                       <div className="admin-eval-select-wrap">
-                        <select className="select select-bordered w-full admin-eval-field admin-eval-select" value={assignForm.user_assigned} onChange={(e) => setAssignForm((p) => ({ ...p, user_assigned: e.target.value }))} required>
+                        <select className="select select-bordered w-full admin-eval-field admin-eval-select" value={assignForm.group} onChange={(e) => setAssignForm((p) => ({ ...p, group: e.target.value }))} required>
                           <option value="">Choose...</option>
-                          {expertUsers.map((u) => (
-                            <option key={u.id} value={u.id}>{u.username} ({u.group})</option>
+                          {activeGroups.map((g) => (
+                            <option key={g} value={g}>{g}</option>
                           ))}
                         </select>
                         <span className="admin-eval-select-caret" aria-hidden="true">
@@ -763,7 +832,7 @@ export default function AdminEvaluations() {
             </div>
 
             {/* LISTS GRID */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8 admin-eval-list-grid">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8 admin-eval-list-grid">
               {/* Evaluations List */}
               <div className="card bg-base-100 shadow-lg border border-base-200 admin-eval-list-card">
                 <div className="card-body p-6">
@@ -833,8 +902,8 @@ export default function AdminEvaluations() {
                               {a?.evaluation?.filename || 'Unknown'}
                             </td>
                             <td>
-                              <div className="tooltip" data-tip={a.user_assigned}>
-                                {expertUsers.find(u => u.id === a.user_assigned)?.username || a.user_assigned}
+                              <div className="tooltip" data-tip={a.group}>
+                                {a.group || 'Unknown Organization'}
                               </div>
                               <div className="text-[10px] opacity-50">Deadline: {fmtDate(a.deadline)}</div>
                             </td>
@@ -852,6 +921,64 @@ export default function AdminEvaluations() {
                           </tr>
                         ))}
                         {!assignments.length && <tr><td colSpan="3" className="text-center opacity-50 py-4">No data</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dimensions List */}
+              <div className="card bg-base-100 shadow-lg border border-base-200 admin-eval-list-card">
+                <div className="card-body p-6">
+                  <h3 className="card-title text-lg mb-4 flex justify-between">
+                    <span>Dimensions</span>
+                    <div className="badge badge-outline">{scorings.length} total</div>
+                  </h3>
+                  <div className="overflow-x-auto h-80 custom-scrollbar">
+                    <table className="table table-compact w-full">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Type (Range)</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {scorings.map((s) => (
+                          <tr key={s._id} className={`hover ${editingDimension?._id === s._id ? 'bg-base-200' : ''}`}>
+                            <td className="font-medium">
+                              {s.dimension_name}
+                              <div className="text-[10px] opacity-70 truncate max-w-[120px]" title={s.dimension_description}>
+                                {s.dimension_description}
+                              </div>
+                            </td>
+                            <td>
+                              <span className="badge badge-ghost badge-sm">{s.type}</span>
+                              <div className="text-[10px] opacity-70 mt-1">
+                                {s.min_range} - {s.max_range}
+                              </div>
+                            </td>
+                            <td>
+                              <div className="flex gap-2">
+                                <button
+                                  className="btn btn-xs btn-ghost btn-square text-info"
+                                  onClick={() => handleEditDimension(s)}
+                                  title="Edit"
+                                >
+                                  <PencilIcon className="w-4 h-4" />
+                                </button>
+                                <button
+                                  className="btn btn-xs btn-ghost btn-square text-error"
+                                  onClick={() => handleDeleteDimension(s._id)}
+                                  title="Delete"
+                                >
+                                  <TrashIcon className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                        {!scorings.length && <tr><td colSpan="3" className="text-center opacity-50 py-4">No data</td></tr>}
                       </tbody>
                     </table>
                   </div>

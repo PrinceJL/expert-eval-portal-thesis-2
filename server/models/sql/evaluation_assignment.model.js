@@ -5,10 +5,15 @@ module.exports = (sequelize, DataTypes) => {
             defaultValue: DataTypes.UUIDV4,
             primaryKey: true
         },
+        group: {
+            type: DataTypes.STRING,
+            allowNull: true
+            // The organization or group assigned to this evaluation
+        },
         user_id: {
             type: DataTypes.UUID,
-            allowNull: false
-            // FK to User defined in associations
+            allowNull: true
+            // FK to User defined in associations. Will store the particular user who submitted it.
         },
         output_id: {
             type: DataTypes.UUID,

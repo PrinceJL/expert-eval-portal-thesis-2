@@ -222,6 +222,7 @@ function mapAssignmentForExpert(assignment, scoringSnapshot) {
   return {
     id: assignment.id,
     _id: assignment.id,
+    group: assignment.group,
     user_assigned: assignment.user_id,
     date_assigned: assignment.assigned_at,
     deadline: assignment.deadline,
@@ -249,8 +250,11 @@ function mapAssignmentForExpert(assignment, scoringSnapshot) {
 async function getMyAssignments(req, res) {
   try {
     const userId = getAuthedUserId(req);
+    const user = await sql.User.findByPk(userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
     const assignments = await EvaluationAssignment.findAll({
-      where: { user_id: userId },
+      where: { group: user.group },
       include: [
         {
           model: EvaluationOutput,
@@ -291,7 +295,10 @@ async function getAssignmentById(req, res) {
 
     if (!assignment) return res.status(404).json({ error: "Assignment not found" });
 
-    const isOwner = String(assignment.user_id) === String(userId);
+    const user = await sql.User.findByPk(userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const isOwner = assignment.group === user.group;
     const isAdmin = req?.user?.role === "ADMIN" || req?.user?.role === "RESEARCHER";
     if (!isOwner && !isAdmin) return res.status(403).json({ error: "Forbidden" });
 
@@ -355,9 +362,12 @@ async function saveAssignmentDraft(req, res) {
     const userId = getAuthedUserId(req);
     const { id } = req.params;
 
+    const user = await sql.User.findByPk(userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
     const assignment = await EvaluationAssignment.findByPk(id);
     if (!assignment) return res.status(404).json({ error: "Assignment not found" });
-    if (String(assignment.user_id) !== String(userId)) return res.status(403).json({ error: "Forbidden" });
+    if (assignment.group !== user.group) return res.status(403).json({ error: "Forbidden" });
     if (assignment.final_submitted || assignment.is_locked) {
       return res.status(409).json({ error: "Assignment is finalized and locked." });
     }
@@ -379,6 +389,7 @@ async function saveAssignmentDraft(req, res) {
       updatedAt: now.toISOString()
     };
 
+    assignment.user_id = userId;
     assignment.draft_submission = payload;
     assignment.last_draft_saved_at = now;
 
@@ -409,9 +420,12 @@ async function submitAssignmentScores(req, res) {
     const userId = getAuthedUserId(req);
     const { id } = req.params;
 
+    const user = await sql.User.findByPk(userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
     const assignment = await EvaluationAssignment.findByPk(id);
     if (!assignment) return res.status(404).json({ error: "Assignment not found" });
-    if (String(assignment.user_id) !== String(userId)) return res.status(403).json({ error: "Forbidden" });
+    if (assignment.group !== user.group) return res.status(403).json({ error: "Forbidden" });
     if (assignment.final_submitted || assignment.is_locked) {
       return res.status(409).json({ error: "Assignment is already submitted and locked." });
     }
@@ -437,6 +451,7 @@ async function submitAssignmentScores(req, res) {
       submittedAt: now.toISOString()
     };
 
+    assignment.user_id = userId;
     assignment.final_submission = finalPayload;
     assignment.draft_submission = finalPayload;
     assignment.final_submitted = true;
@@ -466,9 +481,11 @@ async function submitAssignmentScores(req, res) {
 async function getExpertStats(req, res) {
   try {
     const userId = getAuthedUserId(req);
+    const user = await sql.User.findByPk(userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
 
     const assignments = await EvaluationAssignment.findAll({
-      where: { user_id: userId },
+      where: { group: user.group },
       include: [
         {
           model: EvaluationOutput,

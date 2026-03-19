@@ -109,8 +109,14 @@ const ensureDBConnected = async (req, res, next) => {
 
 const syncDB = async () => {
     try {
-        if (process.env.NODE_ENV === "development") {
+        if (process.env.NODE_ENV !== "production") {
             await sql.sequelize.sync({ alter: true });
+            try {
+                // Manually fix the user_id constraint dropping issue in evaluation_assignments
+                await sql.sequelize.query('ALTER TABLE "evaluation_assignments" ALTER COLUMN "user_id" DROP NOT NULL;');
+            } catch (e) {
+                // Ignore if it's already dropped
+            }
             console.log("Database schema synced for development");
         }
     } catch (error) {

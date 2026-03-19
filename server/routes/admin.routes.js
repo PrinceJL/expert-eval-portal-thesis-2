@@ -21,6 +21,8 @@ router.delete("/users/:id", adminController.deleteUser);
 // Scorings
 router.get("/scorings", adminController.listScorings);
 router.post("/scorings", adminController.createScoring);
+router.patch("/scorings/:id", adminController.updateScoring);
+router.delete("/scorings/:id", adminController.deleteScoring);
 
 // Evaluations
 router.get("/evaluations", adminController.listEvaluations);
