@@ -327,17 +327,17 @@ export default function EvaluationPage() {
     normalizeScoreValue(scores[currentScoring?._id]) !== undefined;
 
   return (
-    <div className="flex flex-col lg:flex-row w-full lg:overflow-hidden bg-base-100 font-sans lg:h-[calc(100vh-65px)] min-h-[calc(100vh-65px)]">
-      <div className="flex flex-col lg:flex-row lg:flex-1 h-auto lg:min-h-screen relative">
+    <div className="flex flex-col lg:flex-row w-full bg-base-100 font-sans lg:h-[calc(100vh-70px)] min-h-[calc(100vh-65px)] padding-bottom: 10px;">
+      <div className="flex flex-col lg:flex-row lg:flex-1 h-auto relative lg:overflow-y-auto">
         <div
-          className="flex-1 lg:overflow-y-auto p-4 sm:p-8 scroll-smooth pb-24 lg:pb-0 transition-transform duration-300"
+          className="flex-1  p-4 sm:p-8 scroll-smooth pb-24 lg:pb-0 transition-transform duration-300 min-h-0"
           style={{ transform: `translateX(${swipeOffset}px)` }}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          <div className="max-w-4xl mx-auto w-full pb-10 space-y-6">
-            <Typography variant="h5" className="font-bold text-2xl border-b pb-4 border-base-300">
+          <div id="a" className="max-w-4xl mx-auto w-full pb-10 space-y-6">
+            <Typography variant="h5" className="font-bold text-2xl border-b pt-4 pb-4 border-base-300 sticky top-0 bg-base-100 z-10">
               {assignment?.evaluation?.filename} - <span className="text-primary">{currentScoring?.dimension_name}</span>
             </Typography>
 
