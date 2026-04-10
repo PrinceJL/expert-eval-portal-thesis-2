@@ -322,6 +322,11 @@ export default function EvaluationPage() {
     return "";
   };
 
+  const getCriteriaDescription = (value) => {
+    const criterion = currentScoring?.criteria?.find((item) => Number(item.value) === Number(value));
+    return criterion?.description || "";
+  };
+
   const hasCurrentScore =
     normalizeScoreValue(scores[currentScoring?._id]) !== null &&
     normalizeScoreValue(scores[currentScoring?._id]) !== undefined;
@@ -467,24 +472,51 @@ export default function EvaluationPage() {
               <div>
                 {showDescription && (
                   <div className="bg-base-200 border border-base-300 rounded-lg p-3 text-sm leading-relaxed mb-4">
-                    {currentScoring?.dimension_description || "No description available."}
+                    {currentScoring?.dimension_description && (
+                      <p className="mb-2">{currentScoring.dimension_description}</p>
+                    )}
+                    {currentScoring?.criteria?.length > 0 ? (
+                      <div className="space-y-1 mt-1">
+                        {currentScoring.criteria.map((c) => (
+                          <div key={c.value} className="flex gap-2">
+                            <span className="font-bold min-w-[24px]">{c.value}</span>
+                            <span>
+                              <span className="font-semibold">{c.criteria_name}</span>
+                              {c.description && (
+                                <span className="opacity-60 ml-1">— {c.description}</span>
+                              )}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      !currentScoring?.dimension_description && <p>No description available.</p>
+                    )}
                   </div>
                 )}
 
                 <ButtonGroup orientation="vertical" variant="outlined" fullWidth className="gap-2">
-                  {scoreRange.map((value) => (
-                    <Button
-                      key={value}
-                      disabled={isLocked}
-                      variant={Number(scores[currentScoring._id]) === value ? "contained" : "outlined"}
-                      color={Number(scores[currentScoring._id]) === value ? "primary" : "inherit"}
-                      onClick={() => setScores((prev) => ({ ...prev, [currentScoring._id]: value }))}
-                      className="!justify-between !py-2"
-                    >
-                      <span>{value}</span>
-                      <span className="opacity-70 text-xs">{getCriteriaName(value)}</span>
-                    </Button>
-                  ))}
+                  {scoreRange.map((value) => {
+                    const criteriaName = getCriteriaName(value);
+                    const criteriaDesc = getCriteriaDescription(value);
+                    return (
+                      <Button
+                        key={value}
+                        disabled={isLocked}
+                        variant={Number(scores[currentScoring._id]) === value ? "contained" : "outlined"}
+                        color={Number(scores[currentScoring._id]) === value ? "primary" : "inherit"}
+                        onClick={() => setScores((prev) => ({ ...prev, [currentScoring._id]: value }))}
+                        className="!justify-between !py-2 !text-left"
+                        sx={{ textTransform: 'none' }}
+                      >
+                        <span className="font-bold text-base">{value}</span>
+                        <span className="flex flex-col items-end">
+                          {criteriaName && <span className="opacity-90 text-xs font-semibold">{criteriaName}</span>}
+                          {criteriaDesc && <span className="opacity-60 text-[10px] leading-tight">{criteriaDesc}</span>}
+                        </span>
+                      </Button>
+                    );
+                  })}
                 </ButtonGroup>
 
                 <textarea
@@ -794,13 +826,34 @@ export default function EvaluationPage() {
               </Button>
 
               <Collapse in={showCriteria}>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  className="mt-3"
-                >
-                  {currentScoring?.dimension_description || "No description available."}
-                </Typography>
+                {currentScoring?.dimension_description && (
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    className="mt-3 mb-2"
+                  >
+                    {currentScoring.dimension_description}
+                  </Typography>
+                )}
+                {currentScoring?.criteria?.length > 0 ? (
+                  <div className="mt-2 space-y-1">
+                    {currentScoring.criteria.map((c) => (
+                      <div key={c.value} className="flex gap-2 text-sm">
+                        <span className="font-bold min-w-[24px]">{c.value}</span>
+                        <span>
+                          <span className="font-semibold">{c.criteria_name}</span>
+                          {c.description && (
+                            <span className="opacity-60 ml-1">— {c.description}</span>
+                          )}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <Typography variant="body2" color="text.secondary" className="mt-3">
+                    No criteria descriptions available.
+                  </Typography>
+                )}
               </Collapse>
             </div>
 

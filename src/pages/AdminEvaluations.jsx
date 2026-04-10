@@ -957,6 +957,11 @@ export default function AdminEvaluations() {
                               <div className="text-[10px] opacity-70 mt-1">
                                 {s.min_range} - {s.max_range}
                               </div>
+                              {Array.isArray(s.criteria) && s.criteria.length > 0 && (
+                                <div className="text-[10px] opacity-50 mt-1">
+                                  {s.criteria.length} criteria defined
+                                </div>
+                              )}
                             </td>
                             <td>
                               <div className="flex gap-2">
