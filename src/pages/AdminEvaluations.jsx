@@ -390,6 +390,19 @@ export default function AdminEvaluations() {
     }
   }
 
+  async function handleDeleteAssignment(id) {
+    if (!window.confirm("Are you sure you want to delete this assignment?")) return;
+    setMsg('');
+    setError('');
+    try {
+      await apiFetch(`/admin/assignments/${id}`, { method: 'DELETE' });
+      setMsg('Assignment deleted.');
+      await loadAll();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   function toggleScoring(id) {
     setAssignForm((p) => {
       const set = new Set(p.scoringIds);
@@ -893,6 +906,7 @@ export default function AdminEvaluations() {
                           <th>Evaluation</th>
                           <th>Assignee</th>
                           <th>Status</th>
+                          <th>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -918,9 +932,18 @@ export default function AdminEvaluations() {
                                 <span className="badge badge-ghost badge-sm">Pending</span>
                               )}
                             </td>
+                            <td>
+                              <button
+                                className="btn btn-xs btn-ghost btn-square text-error"
+                                onClick={() => handleDeleteAssignment(getAssignmentId(a))}
+                                title="Delete"
+                              >
+                                <TrashIcon className="w-4 h-4" />
+                              </button>
+                            </td>
                           </tr>
                         ))}
-                        {!assignments.length && <tr><td colSpan="3" className="text-center opacity-50 py-4">No data</td></tr>}
+                        {!assignments.length && <tr><td colSpan="4" className="text-center opacity-50 py-4">No data</td></tr>}
                       </tbody>
                     </table>
                   </div>
