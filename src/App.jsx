@@ -444,7 +444,7 @@ export default function App() {
                 </div>
               </header>
             ) : null}
-            <div key={routeTransitionKey} className="app-route-stage app-shell-route h-full overflow-hidden">
+            <div key={routeTransitionKey} className="app-route-stage app-shell-route ">
               {appRoutes}
             </div>
           </main>
