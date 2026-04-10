@@ -19,11 +19,10 @@ async function getScoringsByIds(ids = []) {
 }
 
 async function updateScoring(id, updates) {
-    return EvaluationScoring.findByIdAndUpdate(
-        id,
-        updates,
-        { new: true, runValidators: true }
-    );
+    const doc = await EvaluationScoring.findById(id);
+    if (!doc) return null;
+    Object.assign(doc, updates);
+    return doc.save();
 }
 
 async function deleteScoring(id) {
