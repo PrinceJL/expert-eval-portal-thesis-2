@@ -246,7 +246,33 @@ export default function AdminEvaluations() {
       }
       payload = parsed.value;
       if (Array.isArray(payload)) {
-        payload = { items: payload };
+        if (payload[0] && Array.isArray(payload[0].messages)) {
+          const allItems = [];
+          for (const session of payload) {
+            let currentQuery = "";
+            (session.messages || []).forEach(m => {
+              if (m.role === 'user') currentQuery = m.content;
+              else if (m.role === 'assistant' && currentQuery) {
+                allItems.push({ query: currentQuery, llm_response: m.content });
+                currentQuery = "";
+              }
+            });
+          }
+          payload = { items: allItems };
+        } else {
+          payload = { items: payload };
+        }
+      } else if (payload && Array.isArray(payload.messages) && !payload.items) {
+        const allItems = [];
+        let currentQuery = "";
+        payload.messages.forEach(m => {
+          if (m.role === 'user') currentQuery = m.content;
+          else if (m.role === 'assistant' && currentQuery) {
+            allItems.push({ query: currentQuery, llm_response: m.content });
+            currentQuery = "";
+          }
+        });
+        payload.items = allItems;
       }
     }
 

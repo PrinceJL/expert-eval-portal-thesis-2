@@ -309,7 +309,7 @@ export default function EvaluationPage() {
     return (
       <div className="p-8">
         <div className="alert alert-error max-w-3xl">
-          <span>No scoring dimensions are assigned for this task. Ask admin to re-assign this evaluation.</span>
+          <span>No scoring criteria are assigned for this task. Ask admin to re-assign this evaluation.</span>
         </div>
       </div>
     );
@@ -372,11 +372,11 @@ export default function EvaluationPage() {
                 <div key={index} className="flex flex-col gap-4">
                   <div className="chat chat-end">
                     <div className="chat-header opacity-50 text-xs mb-1 uppercase tracking-wide font-semibold">User Query</div>
-                    <div className="chat-bubble chat-bubble-info text-white shadow-sm text-lg leading-relaxed">{item.query}</div>
+                    <div className="chat-bubble chat-bubble-info text-white shadow-sm text-lg leading-relaxed whitespace-pre-wrap">{item.query}</div>
                   </div>
                   <div className="chat chat-start">
                     <div className="chat-header opacity-50 text-xs mb-1 uppercase tracking-wide font-semibold">Model Response</div>
-                    <div className="chat-bubble bg-base-200 text-base-content shadow-md text-lg leading-relaxed border border-base-300">
+                    <div className="chat-bubble bg-base-200 text-base-content shadow-md text-lg leading-relaxed border border-base-300 whitespace-pre-wrap">
                       {item.llm_response}
                     </div>
                   </div>
@@ -431,14 +431,6 @@ export default function EvaluationPage() {
                       <span className="badge badge-neutral">Not Applicable</span>
                     )}
                     {distressNotes && <p className="text-sm mt-2 opacity-80 break-words">{distressNotes}</p>}
-                  </div>
-
-                  <div className="divider my-0" />
-
-                  <div>
-                    <span className="font-medium text-sm block mb-1">Error Severity:</span>
-                    <span className="badge badge-outline uppercase object-contain">{errorLevel}</span>
-                    {errorDescription && <p className="text-sm mt-2 opacity-80 break-words">{errorDescription}</p>}
                   </div>
                 </div>
               </div>
@@ -522,18 +514,18 @@ export default function EvaluationPage() {
                 <textarea
                   value={notes[currentScoring._id] || ""}
                   onChange={(event) => setNotes((prev) => ({ ...prev, [currentScoring._id]: event.target.value }))}
-                  placeholder="Optional note for this dimension"
+                  placeholder="Optional note for this criteria"
                   className="textarea textarea-bordered w-full mt-3"
                   rows={3}
                   disabled={isLocked}
                 />
 
                 <p className="text-xs opacity-60 mt-2">
-                  Dimension {dimensionIndex + 1} of {evaluationScorings.length}
+                  Criteria {dimensionIndex + 1} of {evaluationScorings.length}
                 </p>
 
                 <div className="flex justify-between mt-4">
-                  <div className="tooltip" data-tip="Go back to the previous dimension">
+                  <div className="tooltip" data-tip="Go back to the previous criteria">
                     <Button
                       variant="text"
                       disabled={dimensionIndex === 0}
@@ -542,7 +534,7 @@ export default function EvaluationPage() {
                       Previous
                     </Button>
                   </div>
-                  <div className="tooltip" data-tip="Skip to the next dimension">
+                  <div className="tooltip" data-tip="Skip to the next criteria">
                     <Button
                       variant="text"
                       disabled={dimensionIndex >= evaluationScorings.length - 1}
@@ -607,31 +599,6 @@ export default function EvaluationPage() {
                 />
               </div>
 
-              <div className="space-y-3">
-                <Typography variant="subtitle2" className="font-semibold">Error Severity</Typography>
-                <select
-                  value={errorLevel}
-                  onChange={(event) => setErrorLevel(event.target.value)}
-                  className="select select-bordered w-full"
-                  disabled={isLocked}
-                >
-                  {ERROR_LEVEL_OPTIONS.map((level) => (
-                    <option key={level} value={level}>{level.toUpperCase()}</option>
-                  ))}
-                </select>
-                <textarea
-                  value={errorDescription}
-                  onChange={(event) => setErrorDescription(event.target.value)}
-                  className="textarea textarea-bordered w-full"
-                  rows={2}
-                  placeholder="Describe notable errors (optional)"
-                  disabled={isLocked}
-                />
-                {errorLevel === "major" ? (
-                  <p className="text-xs text-error">Major severity is marked as score override in the final submission.</p>
-                ) : null}
-              </div>
-
               <div className="pt-2 space-y-2">
                 <div className="tooltip w-full" data-tip="Save your progress to continue later without submitting">
                   <button
@@ -656,7 +623,7 @@ export default function EvaluationPage() {
                     </button>
                   </div>
                 ) : (
-                  <div className="tooltip tooltip-bottom w-full" data-tip="Proceed to score the next dimension">
+                  <div className="tooltip tooltip-bottom w-full" data-tip="Proceed to score the next criteria">
                     <button
                       type="button"
                       className="btn btn-primary w-full"
@@ -978,43 +945,6 @@ export default function EvaluationPage() {
                   disabled={isLocked}
                   onChange={(e) => setDistressNotes(e.target.value)}
                 />
-              </div>
-
-              {/* === ERROR SEVERITY === */}
-              <div className="space-y-3">
-                <Typography variant="subtitle2" fontWeight={600}>
-                  Error Severity
-                </Typography>
-
-                <TextField
-                  select
-                  fullWidth
-                  value={errorLevel}
-                  disabled={isLocked}
-                  onChange={(e) => setErrorLevel(e.target.value)}
-                >
-                  {ERROR_LEVEL_OPTIONS.map((level) => (
-                    <MenuItem key={level} value={level}>
-                      {level.toUpperCase()}
-                    </MenuItem>
-                  ))}
-                </TextField>
-
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={2}
-                  label="Describe notable errors (optional)"
-                  value={errorDescription}
-                  disabled={isLocked}
-                  onChange={(e) => setErrorDescription(e.target.value)}
-                />
-
-                {errorLevel === "major" && (
-                  <Typography variant="caption" color="error">
-                    Major severity is marked as score override in the final submission.
-                  </Typography>
-                )}
               </div>
 
             </DialogContent>
