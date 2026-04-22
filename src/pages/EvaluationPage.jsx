@@ -20,6 +20,7 @@ import {
   FormControlLabel
 } from "@mui/material";
 
+import ReactMarkdown from 'react-markdown';
 import {
   ChevronLeft,
   ChevronRight,
@@ -376,8 +377,12 @@ export default function EvaluationPage() {
                   </div>
                   <div className="chat chat-start">
                     <div className="chat-header opacity-50 text-xs mb-1 uppercase tracking-wide font-semibold">Model Response</div>
-                    <div className="chat-bubble bg-base-200 text-base-content shadow-md text-lg leading-relaxed border border-base-300 whitespace-pre-wrap">
-                      {item.llm_response}
+                    <div className="chat-bubble bg-base-200 text-base-content shadow-md text-lg leading-relaxed border border-base-300">
+                      <div className="prose prose-sm xl:prose-base whitespace-pre-wrap [&>*]:my-1">
+                        <ReactMarkdown>
+                          {item.llm_response}
+                        </ReactMarkdown>
+                      </div>
                     </div>
                   </div>
                 </div>
