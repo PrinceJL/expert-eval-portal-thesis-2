@@ -13,9 +13,9 @@ const PRESENCE_IDLE_MS = Number(import.meta.env.VITE_PRESENCE_IDLE_MS || 5 * 60 
 const PRESENCE_ACTIVITY_THROTTLE_MS = Number(import.meta.env.VITE_PRESENCE_ACTIVITY_THROTTLE_MS || 12 * 1000);
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem('accessToken'));
+  const [token, setToken] = useState(() => sessionStorage.getItem('accessToken'));
   const [user, setUser] = useState(() => {
-    const raw = localStorage.getItem('user');
+    const raw = sessionStorage.getItem('user');
     return raw ? JSON.parse(raw) : null;
   });
   const [logoutTransitionPhase, setLogoutTransitionPhase] = useState('idle');
@@ -55,8 +55,8 @@ export function AuthProvider({ children }) {
 
   function clearAuthState() {
     clearPresenceHeartbeatTimer();
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('user');
+    sessionStorage.removeItem('accessToken');
+    sessionStorage.removeItem('user');
 
     setToken(null);
     setUser(null);
@@ -73,7 +73,8 @@ export function AuthProvider({ children }) {
     fetch(`${baseUrl}/auth/logout`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      keepalive: true
     }).catch(() => {
       // Best-effort only; local logout should still proceed.
     });
@@ -111,7 +112,7 @@ export function AuthProvider({ children }) {
         body: JSON.stringify({})
       });
       if (data?.accessToken) {
-        localStorage.setItem('accessToken', data.accessToken);
+        sessionStorage.setItem('accessToken', data.accessToken);
         setToken(data.accessToken);
       }
     } catch {
@@ -200,8 +201,8 @@ export function AuthProvider({ children }) {
       body: JSON.stringify({ username, password, deviceFingerprint })
     });
 
-    localStorage.setItem('accessToken', data.accessToken);
-    localStorage.setItem('user', JSON.stringify(data.user));
+    sessionStorage.setItem('accessToken', data.accessToken);
+    sessionStorage.setItem('user', JSON.stringify(data.user));
 
     setToken(data.accessToken);
     setUser(data.user);
@@ -232,7 +233,7 @@ export function AuthProvider({ children }) {
     setUser((prev) => {
       if (!prev) return prev;
       const nextUser = { ...prev, presenceStatus: nextStatus };
-      localStorage.setItem('user', JSON.stringify(nextUser));
+      sessionStorage.setItem('user', JSON.stringify(nextUser));
       return nextUser;
     });
   };
@@ -268,6 +269,7 @@ export function AuthProvider({ children }) {
     () => ({
       token,
       user,
+      setUser,
       isAuthed,
       login,
       logout,

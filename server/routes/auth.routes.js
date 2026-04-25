@@ -36,4 +36,10 @@ router.post("/presence", authenticate, authController.setPresence);
  */
 router.post("/heartbeat", authenticate, authController.heartbeat);
 
+/**
+ * POST /auth/change-password
+ * Body: { newPassword }
+ */
+router.post("/change-password", authenticate, authController.changePassword);
+
 module.exports = router;

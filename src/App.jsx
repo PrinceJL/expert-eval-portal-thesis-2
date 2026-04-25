@@ -16,6 +16,7 @@ const loadAdminEvaluations = () => import('./pages/AdminEvaluations');
 const loadAdminContact = () => import('./pages/AdminContact');
 const loadMaintenance = () => import('./pages/Maintenance');
 const loadNotFound = () => import('./pages/NotFound');
+const loadForceChangePassword = () => import('./pages/ForceChangePassword');
 
 const Dashboard = lazy(loadDashboard);
 const EvaluationList = lazy(loadEvaluationList);
@@ -27,6 +28,7 @@ const AdminEvaluations = lazy(loadAdminEvaluations);
 const AdminContact = lazy(loadAdminContact);
 const Maintenance = lazy(loadMaintenance);
 const NotFound = lazy(loadNotFound);
+const ForceChangePassword = lazy(loadForceChangePassword);
 
 function RouteLoadingFallback() {
   return (
@@ -80,6 +82,8 @@ export default function App() {
   const showLoginTransition = loginTransitionPhase !== 'idle';
   const location = useLocation();
   const isLoginRoute = location.pathname === '/login';
+  const isForceChangePasswordRoute = location.pathname === '/force-change-password';
+  const isPlainLayoutRoute = isLoginRoute || isForceChangePasswordRoute;
   const routeTransitionKey = `${location.pathname}${location.search}`;
   const pageLabel = getPageLabel(location.pathname);
   const [breadcrumbTarget, setBreadcrumbTarget] = useState({
@@ -280,6 +284,7 @@ export default function App() {
       <Routes location={location}>
         <Route path="/login" element={<Login />} />
         <Route path="/maintenance" element={<Maintenance />} />
+        <Route path="/force-change-password" element={isAuthed ? <ForceChangePassword /> : <Navigate to="/login" replace />} />
 
         <Route
           path="/dashboard"
@@ -377,7 +382,7 @@ export default function App() {
           <img src="/images/logo-login.webp" alt="Portal logo" className="login-global-splash-logo" />
         </div>
       ) : null}
-      {isLoginRoute ? (
+      {isPlainLayoutRoute ? (
         <div key={routeTransitionKey} className="app-route-stage">
           {appRoutes}
         </div>

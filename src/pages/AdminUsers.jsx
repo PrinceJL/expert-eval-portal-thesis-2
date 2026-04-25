@@ -499,7 +499,7 @@ export default function AdminUsers() {
                       </select>
                     </div>
 
-                    <div className="overflow-x-auto rounded-xl border border-base-300 admin-users-table-wrap">
+                    <div className="overflow-x-auto overflow-y-auto max-h-[600px] custom-scrollbar rounded-xl border border-base-300 admin-users-table-wrap">
                       <table className="table table-pin-rows w-full">
                         <thead>
                           <tr>

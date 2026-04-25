@@ -84,7 +84,8 @@ async function createUser(req, res) {
       group,
       role,
       passwordHash,
-      isActive: true
+      isActive: true,
+      mustChangePassword: true
     });
 
     res.status(201).json({
@@ -144,6 +145,10 @@ async function updateUser(req, res) {
       newTempPassword = genTempPassword();
       user.passwordHash = await bcrypt.hash(newTempPassword, 10);
       passwordUpdated = true;
+    }
+
+    if (passwordUpdated) {
+      user.mustChangePassword = true;
     }
 
     await user.save();

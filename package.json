@@ -28,6 +28,7 @@
         "lucide-react": "^0.575.0",
         "mongoose": "^9.1.5",
         "multer": "^2.0.2",
+        "nodemailer": "^8.0.6",
         "pg": "^8.17.2",
         "pg-hstore": "^2.3.4",
         "react": "^19.2.0",

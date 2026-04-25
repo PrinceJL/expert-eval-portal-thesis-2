@@ -2,6 +2,7 @@ const authService = require("../services/auth.service");
 const authenticate = require("../middleware/auth.middleware");
 const { mongo, sql } = require("../models");
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcrypt");
 
 const VALID_PRESENCE_STATUSES = new Set(["auto", "online", "idle", "dnd", "invisible"]);
 const ACCESS_TOKEN_TTL = process.env.ACCESS_TOKEN_TTL || "15m";
@@ -37,7 +38,9 @@ async function login(req, res) {
                         expiresAt: { $gt: new Date() }
                     });
                     if (active) {
-                        return res.status(409).json({ error: "Already logged in. Please logout first." });
+                        // User is already logged in with a valid token, but we will allow them to login again.
+                        // The authService.login function will handle clearing the old session.
+                        console.log(`User ${userId} is logging in again. Proceeding to create a new session.`);
                     }
                 }
             } catch {
@@ -157,4 +160,31 @@ async function heartbeat(req, res) {
     }
 }
 
-module.exports = { login, logout, me, setPresence, heartbeat };
+async function changePassword(req, res) {
+    try {
+        const userId = String(req?.user?.id || "");
+        if (!userId) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const { newPassword } = req.body;
+        if (!newPassword || newPassword.length < 8) {
+            return res.status(400).json({ error: "Password must be at least 8 characters" });
+        }
+
+        const user = await sql.User.findByPk(userId);
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        user.passwordHash = await bcrypt.hash(newPassword, 10);
+        user.mustChangePassword = false;
+        await user.save();
+
+        return res.json({ message: "Password updated successfully" });
+    } catch (e) {
+        return res.status(500).json({ error: e.message || "Failed to change password" });
+    }
+}
+
+module.exports = { login, logout, me, setPresence, heartbeat, changePassword };

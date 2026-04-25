@@ -235,9 +235,9 @@ async function send(req, res) {
       await notificationService.createNotification(
         String(recipientId),
         "message",
-        "New message",
-        "You received a new message.",
-        { conversationId }
+        `New message from ${req.user.username}`,
+        content || "Sent an attachment",
+        { conversationId, senderName: req.user.username }
       );
     } catch { }
 

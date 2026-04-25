@@ -1,4 +1,6 @@
 const Notification = require("../models/mongo/notification.model");
+const { sql } = require("../models");
+const emailService = require("./email.service");
 
 /**
  * Creates a new notification for a user.
@@ -22,7 +24,39 @@ async function createNotification(userId, type, title, message, data = {}) {
         isRead: false
     });
 
-    return await notification.save();
+    await notification.save();
+
+    // Email notification logic
+    if (type === "message" && process.env.ADMIN_NOTIFICATION_EMAIL) {
+        try {
+            const user = await sql.User.findByPk(userId);
+            if (user && user.role === "ADMIN") {
+                const senderName = data.senderName || "A user";
+                await emailService.sendEmail({
+                    to: process.env.ADMIN_NOTIFICATION_EMAIL,
+                    subject: `[Portal] ${title}`,
+                    text: `Hello,\n\n${senderName} has sent you a new message on the Evaluation Portal.\n\nContent: "${message}"\n\nPlease log in to the portal to reply.\n\nBest regards,\nPortal System`,
+                    html: `
+                        <div style="font-family: sans-serif; line-height: 1.5; color: #333;">
+                            <h2>New Message Received</h2>
+                            <p><strong>${senderName}</strong> has sent you a new message on the Evaluation Portal.</p>
+                            <div style="background: #f9f9f9; padding: 15px; border-left: 4px solid #4f46e5; margin: 20px 0;">
+                                <em>"${message}"</em>
+                            </div>
+                            <p>Please log in to the portal to view the full conversation and reply.</p>
+                            <hr />
+                            <p style="font-size: 12px; color: #777;">This is an automated notification from your Evaluation Portal.</p>
+                        </div>
+                    `
+                });
+            }
+        } catch (emailError) {
+            console.error("Failed to send notification email:", emailError);
+            // We don't throw here to avoid blocking the notification creation
+        }
+    }
+
+    return notification;
 }
 
 /**

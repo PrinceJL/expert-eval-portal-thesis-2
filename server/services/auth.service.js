@@ -79,14 +79,23 @@ async function login({ username, password, deviceFingerprint, req }) {
         if (ENFORCE_SINGLE_DEVICE_SESSION && existingSession && isRecentlyActive(existingSession)) {
             const sameDevice = String(existingSession.deviceFingerprint || "") === normalizedDeviceFingerprint;
             if (!sameDevice) {
-                const err = new Error("This account is already active on another device. Please logout there first.");
-                err.statusCode = 409;
-                throw err;
+                // The user requested to log out the previous user instead of throwing an error.
+                // The code below will clear all previous sessions.
+                console.log(`User ${user.id} logged in from a new device. Previous session will be invalidated.`);
             }
         }
 
         // Re-issue session
-        await mongo.SessionCache.deleteMany({ userId: String(user.id) });
+        if (ENFORCE_SINGLE_DEVICE_SESSION) {
+            // Enforce single session by deleting all existing sessions for this user
+            await mongo.SessionCache.deleteMany({ userId: String(user.id) });
+        } else {
+            // Allow multiple sessions, but replace the session for the current device
+            await mongo.SessionCache.deleteMany({ 
+                userId: String(user.id), 
+                deviceFingerprint: normalizedDeviceFingerprint 
+            });
+        }
 
         const sessionId = makeSessionId();
 
@@ -97,6 +106,7 @@ async function login({ username, password, deviceFingerprint, req }) {
                 username: user.username,
                 group: user.group,
                 email: user.email || null,
+                mustChangePassword: !!user.mustChangePassword,
                 sid: sessionId
             },
             process.env.JWT_SECRET || "default_secret_key",
@@ -139,6 +149,7 @@ async function login({ username, password, deviceFingerprint, req }) {
                 role: user.role,
                 group: user.group,
                 email: user.email || null,
+                mustChangePassword: !!user.mustChangePassword,
                 presenceStatus: existingPresenceStatus
             }
         };

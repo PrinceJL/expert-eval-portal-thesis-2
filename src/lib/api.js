@@ -10,7 +10,7 @@ export function getApiBaseUrl() {
 
 export async function apiFetch(path, options = {}) {
   const baseUrl = getApiBaseUrl();
-  const token = localStorage.getItem('accessToken');
+  const token = sessionStorage.getItem('accessToken');
 
   const headers = new Headers(options.headers || {});
   if (!headers.has('Content-Type') && options.body) {
