@@ -101,7 +101,6 @@ async function createUser(req, res) {
       temporaryPassword: password
     });
   } catch (e) {
-    // Friendly unique constraint errors
     const msg = String(e?.message || "");
     if (msg.includes("username") && msg.includes("group")) {
       return res.status(409).json({ error: "Username already exists for this group" });
@@ -324,16 +323,11 @@ async function deleteScoring(req, res) {
 
 async function listEvaluations(req, res) {
   try {
-    // In SQL, "Evaluations" are effectively EvaluationOutputs tied to ModelVersions
-    // or we can allow assigning specific ModelVersions.
-    // Let's return ModelVersions that have outputs, or just EvaluationOutputs directly.
-    // For simplicity in assignment, we list EvaluationOutputs.
     const outputs = await sql.EvaluationOutput.findAll({
       include: [{ model: sql.ModelVersion, as: 'modelVersion' }],
       order: [['createdAt', 'DESC']]
     });
 
-    // Transform to friendly format
     const mapped = outputs.map(o => {
       let items = [];
       try {
@@ -343,11 +337,9 @@ async function listEvaluations(req, res) {
         } else if (parsed && Array.isArray(parsed.items)) {
           items = parsed.items;
         } else {
-          // Fallback for flat object or single item
           items = [parsed];
         }
       } catch (e) {
-        // Fallback for legacy text format
         if (o.output_text && o.output_text.trim()) {
           items = [{
             query: o.output_text.split("[Response]:")[0]?.replace("[Query]:", "")?.trim() || "Query text unavailable",
@@ -361,7 +353,7 @@ async function listEvaluations(req, res) {
         filename: `Evaluation ${o.modelVersion?.model_name || 'Item'}`,
         rag_version: o.modelVersion?.version || 'v1.0',
         createdAt: o.createdAt,
-        items: items // Return actual items
+        items: items
       };
     });
 
@@ -373,34 +365,16 @@ async function listEvaluations(req, res) {
 }
 
 async function createEvaluation(req, res) {
-  // Creating a new "Evaluation" in SQL means creating a ModelVersion + Output + Criteria?
-  // or just utilizing existing seeding scripts. 
-  // For this MVP, we might stick to " Assignments are created from EXISTING outputs".
-  // But if the user wants to "Create" one, we'd need a text input.
   try {
     const { filename, rag_version, items } = req.body;
-    // This is complex for SQL structure (ModelVersion -> Output).
-    // Let's implement a basic version that creates a ModelVersion and Output.
-
-    // 1. Create/Find ModelVersion
     const [version] = await sql.ModelVersion.findOrCreate({
       where: { version: rag_version || 'v1.0', model_name: filename || 'Custom Eval' }
     });
-
-    // 2. Create Output
-    // items is array of { query, llm_response... }
-    // We store this as one big text blob in `output_text` for now, matching the `expert.controller.js` parsing logic.
-    // "[Query]: ... [Response]: ..."
-    // 2. Create Output
-    // items is array of { query, llm_response... }
-    // Serialize ALL items to JSON
     const outputText = JSON.stringify(items);
-
     const output = await sql.EvaluationOutput.create({
       model_version_id: version.id,
       output_text: outputText
     });
-
     res.status(201).json(output);
   } catch (e) {
     console.error("createEvaluation error:", e);
@@ -419,11 +393,7 @@ async function listAssignments(req, res) {
     const assignments = await sql.EvaluationAssignment.findAll({
       where,
       include: [
-        {
-          model: sql.User,
-          as: 'user',
-          attributes: ['id', 'username', 'email']
-        },
+        { model: sql.User, as: 'user', attributes: ['id', 'username', 'email'] },
         {
           model: sql.EvaluationOutput,
           as: 'output',
@@ -433,7 +403,6 @@ async function listAssignments(req, res) {
       order: [['assigned_at', 'DESC']]
     });
 
-    // Remap for frontend consistency
     const mapped = assignments.map(a => {
       const scoringIds = Array.isArray(a.scoring_ids) ? a.scoring_ids : [];
       const totalAssigned = scoringIds.length || (Array.isArray(a.scoring_snapshot) ? a.scoring_snapshot.length : 0);
@@ -464,7 +433,6 @@ async function listAssignments(req, res) {
         total_criteria: totalAssigned
       };
     });
-
     res.json(mapped);
   } catch (e) {
     console.error("listAssignments error:", e);
@@ -475,26 +443,15 @@ async function listAssignments(req, res) {
 async function createAssignment(req, res) {
   try {
     const { group, evaluation, evaluation_scorings = [], deadline } = req.body;
-    // group = organization name string
-    // evaluation = output_id
-
-    if (!group || !evaluation) {
-      return res.status(400).json({ error: "Missing group or evaluation ID" });
-    }
+    if (!group || !evaluation) return res.status(400).json({ error: "Missing group or evaluation ID" });
     if (!Array.isArray(evaluation_scorings) || evaluation_scorings.length === 0) {
       return res.status(400).json({ error: "Please assign at least one scoring dimension." });
     }
 
     const evaluationOutput = await sql.EvaluationOutput.findByPk(evaluation);
-    if (!evaluationOutput) {
-      return res.status(400).json({ error: "Selected evaluation does not exist." });
-    }
+    if (!evaluationOutput) return res.status(400).json({ error: "Selected evaluation does not exist." });
 
     const selectedScorings = await scoringService.getScoringsByIds(evaluation_scorings);
-    if (selectedScorings.length !== evaluation_scorings.length) {
-      return res.status(400).json({ error: "One or more selected scoring dimensions are invalid." });
-    }
-
     const orderedScorings = evaluation_scorings
       .map((id) => selectedScorings.find((s) => String(s?._id) === String(id)))
       .filter(Boolean);
@@ -502,18 +459,14 @@ async function createAssignment(req, res) {
     const scoringSnapshot = orderedScorings.map((scoring) => {
       const scoringType = scoring?.type === "Boolean" ? "Boolean" : "Likert";
       const booleanMode = scoringType === "Boolean";
-      const minRange = booleanMode ? 0 : Number(scoring?.min_range || 1);
-      const maxRange = booleanMode ? 1 : Number(scoring?.max_range || 5);
-      const criteria = normalizeScoringCriteria(scoring?.criteria || [], { booleanMode });
-
       return {
         _id: String(scoring._id),
         dimension_name: String(scoring.dimension_name || "").trim(),
         dimension_description: String(scoring.dimension_description || "").trim(),
         type: scoringType,
-        min_range: minRange,
-        max_range: maxRange,
-        criteria
+        min_range: booleanMode ? 0 : Number(scoring?.min_range || 1),
+        max_range: booleanMode ? 1 : Number(scoring?.max_range || 5),
+        criteria: normalizeScoringCriteria(scoring?.criteria || [], { booleanMode })
       };
     });
 
@@ -531,26 +484,15 @@ async function createAssignment(req, res) {
       is_locked: false
     });
 
-    // Notification
     try {
-      // Find all users in the group and notify them
       const groupUsers = await sql.User.findAll({ where: { group: group } });
       for (const user of groupUsers) {
-        await notificationService.createNotification(
-          String(user.id),
-          "assignment",
-          "New evaluation assigned",
-          `Your group (${group}) has a new evaluation assignment.`,
-          { assignmentId: assignment.id }
-        );
+        await notificationService.createNotification(String(user.id), "assignment", "New evaluation assigned", `Your group (${group}) has a new assignment.`, { assignmentId: assignment.id });
       }
-    } catch (err) {
-      console.error("Notification error:", err);
-    }
+    } catch (err) { console.error(err); }
 
     res.status(201).json(assignment);
   } catch (e) {
-    console.error("createAssignment error:", e);
     res.status(400).json({ error: e.message || "Failed to create assignment" });
   }
 }
@@ -558,13 +500,11 @@ async function createAssignment(req, res) {
 async function getEvaluationAnalytics(req, res) {
   try {
     const assignments = await sql.EvaluationAssignment.findAll({
-      include: [
-        {
-          model: sql.EvaluationOutput,
-          as: "output",
-          include: [{ model: sql.ModelVersion, as: "modelVersion" }]
-        }
-      ],
+      include: [{
+        model: sql.EvaluationOutput,
+        as: "output",
+        include: [{ model: sql.ModelVersion, as: "modelVersion" }]
+      }],
       order: [["assigned_at", "DESC"]]
     });
 
@@ -578,22 +518,14 @@ async function getEvaluationAnalytics(req, res) {
 
       if (!modelAgg.has(modelKey)) {
         modelAgg.set(modelKey, {
-          modelName,
-          modelVersion,
-          totalAssignments: 0,
-          completedAssignments: 0,
-          avgScoreAccumulator: 0,
-          avgScoreCount: 0,
-          distressFails: 0,
-          majorErrors: 0
+          modelName, modelVersion, totalAssignments: 0, completedAssignments: 0,
+          avgScoreAccumulator: 0, avgScoreCount: 0, distressFails: 0, majorErrors: 0
         });
       }
 
       const modelRow = modelAgg.get(modelKey);
       modelRow.totalAssignments += 1;
-
-      const finalSubmission = assignment?.final_submission || null;
-      const finalResponses = normalizeAssignmentResponses(finalSubmission);
+      const finalResponses = normalizeAssignmentResponses(assignment?.final_submission);
 
       if (assignment?.final_submitted) modelRow.completedAssignments += 1;
       if ((assignment?.distress_detection?.result || "").toUpperCase() === "FAIL") modelRow.distressFails += 1;
@@ -620,30 +552,20 @@ async function getEvaluationAnalytics(req, res) {
     }
 
     const modelComparison = Array.from(modelAgg.values()).map((row) => ({
-      modelName: row.modelName,
-      modelVersion: row.modelVersion,
-      totalAssignments: row.totalAssignments,
+      modelName: row.modelName, modelVersion: row.modelVersion, totalAssignments: row.totalAssignments,
       completedAssignments: row.completedAssignments,
       avgScore: row.avgScoreCount > 0 ? Number((row.avgScoreAccumulator / row.avgScoreCount).toFixed(2)) : null,
-      distressFails: row.distressFails,
-      majorErrors: row.majorErrors
+      distressFails: row.distressFails, majorErrors: row.majorErrors
     }));
 
-    const dimensionSummary = Array.from(dimensionAgg.values())
-      .map((row) => ({
-        dimensionName: row.dimensionName,
-        avgScore: row.count > 0 ? Number((row.totalScore / row.count).toFixed(2)) : null,
-        responses: row.count
-      }))
-      .sort((a, b) => String(a.dimensionName).localeCompare(String(b.dimensionName)));
+    const dimensionSummary = Array.from(dimensionAgg.values()).map((row) => ({
+      dimensionName: row.dimensionName,
+      avgScore: row.count > 0 ? Number((row.totalScore / row.count).toFixed(2)) : null,
+      responses: row.count
+    })).sort((a, b) => String(a.dimensionName).localeCompare(String(b.dimensionName)));
 
-    res.json({
-      generatedAt: new Date().toISOString(),
-      modelComparison,
-      dimensionSummary
-    });
+    res.json({ generatedAt: new Date().toISOString(), modelComparison, dimensionSummary });
   } catch (e) {
-    console.error("getEvaluationAnalytics error:", e);
     res.status(500).json({ error: "Failed to load evaluation analytics" });
   }
 }
@@ -652,175 +574,126 @@ async function updateAssignment(req, res) {
   try {
     const { id } = req.params;
     const { deadline, status } = req.body;
-
     const assignment = await sql.EvaluationAssignment.findByPk(id);
     if (!assignment) return res.status(404).json({ error: "Assignment not found" });
-
     if (deadline !== undefined) assignment.deadline = deadline ? new Date(deadline) : null;
     if (status !== undefined) assignment.status = status;
-
     await assignment.save();
     res.json(assignment);
-  } catch (e) {
-    res.status(500).json({ error: "Failed to update assignment" });
-  }
+  } catch (e) { res.status(500).json({ error: "Failed to update assignment" }); }
 }
 
 async function deleteAssignment(req, res) {
   try {
-    const { id } = req.params;
-    const deleted = await sql.EvaluationAssignment.destroy({ where: { id } });
+    const deleted = await sql.EvaluationAssignment.destroy({ where: { id: req.params.id } });
     if (!deleted) return res.status(404).json({ error: "Assignment not found" });
     res.json({ message: "Assignment deleted" });
-  } catch (e) {
-    res.status(500).json({ error: "Failed to delete assignment" });
-  }
+  } catch (e) { res.status(500).json({ error: "Failed to delete assignment" }); }
 }
 
 // ------------------ MAINTENANCE ------------------
 
 async function getMaintenance(req, res) {
   try {
-    const PageMaintenance = sql.PageMaintenance;
-    const [global] = await PageMaintenance.findOrCreate({
-      where: { pageName: "GLOBAL" },
-      defaults: { isUnderMaintenance: false, maintenanceMessage: "" }
-    });
-    const pages = await PageMaintenance.findAll({ order: [["pageName", "ASC"]] });
+    const [global] = await sql.PageMaintenance.findOrCreate({ where: { pageName: "GLOBAL" }, defaults: { isUnderMaintenance: false, maintenanceMessage: "" } });
+    const pages = await sql.PageMaintenance.findAll({ order: [["pageName", "ASC"]] });
     res.json({ global, pages });
-  } catch (e) {
-    res.status(500).json({ error: "Failed to load maintenance settings" });
-  }
+  } catch (e) { res.status(500).json({ error: "Failed to load maintenance settings" }); }
 }
 
 async function setMaintenance(req, res) {
   try {
-    const PageMaintenance = sql.PageMaintenance;
     const { pageName, isUnderMaintenance, maintenanceMessage, scheduledStart, scheduledEnd } = req.body;
-    if (!pageName) return res.status(400).json({ error: "Missing pageName" });
-
-    const [row] = await PageMaintenance.findOrCreate({
-      where: { pageName },
-      defaults: {
-        isUnderMaintenance: !!isUnderMaintenance,
-        maintenanceMessage: maintenanceMessage || "",
-        scheduledStart: scheduledStart ? new Date(scheduledStart) : null,
-        scheduledEnd: scheduledEnd ? new Date(scheduledEnd) : null,
-        updatedBy: req.user.id
-      }
-    });
-
+    const [row] = await sql.PageMaintenance.findOrCreate({ where: { pageName }, defaults: { isUnderMaintenance: false, maintenanceMessage: "" } });
     row.isUnderMaintenance = isUnderMaintenance !== undefined ? !!isUnderMaintenance : row.isUnderMaintenance;
     if (maintenanceMessage !== undefined) row.maintenanceMessage = maintenanceMessage;
     if (scheduledStart !== undefined) row.scheduledStart = scheduledStart ? new Date(scheduledStart) : null;
     if (scheduledEnd !== undefined) row.scheduledEnd = scheduledEnd ? new Date(scheduledEnd) : null;
     row.updatedBy = req.user.id;
     await row.save();
-
     res.json(row);
-  } catch (e) {
-    res.status(500).json({ error: "Failed to update maintenance" });
-  }
+  } catch (e) { res.status(500).json({ error: "Failed to update maintenance" }); }
 }
 
 async function getDashboardStats(req, res) {
   try {
     const userCount = await sql.User.count();
-
-    // Count users active in last 5 minutes
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-    const onlineCount = await sql.User.count({
-      where: {
-        lastActiveAt: {
-          [Op.gte]: fiveMinutesAgo
-        }
-      }
-    });
-
+    const onlineCount = await sql.User.count({ where: { lastActiveAt: { [Op.gte]: fiveMinutesAgo } } });
     const evaluationCount = await sql.EvaluationAssignment.count();
     const completedCount = await sql.EvaluationAssignment.count({ where: { status: 'COMPLETED' } });
     const pendingCount = await sql.EvaluationAssignment.count({ where: { status: 'PENDING' } });
-
-    res.json({
-      users: {
-        total: userCount,
-        online: onlineCount
-      },
-      evaluations: {
-        total: evaluationCount,
-        completed: completedCount,
-        pending: pendingCount
-      }
-    });
-  } catch (e) {
-    console.error("Stats Error:", e);
-    res.status(500).json({ error: "Failed to fetch dashboard stats" });
-  }
+    res.json({ users: { total: userCount, online: onlineCount }, evaluations: { total: evaluationCount, completed: completedCount, pending: pendingCount } });
+  } catch (e) { res.status(500).json({ error: "Failed to fetch stats" }); }
 }
 
 async function getDashboardSettings(req, res) {
   try {
     let settings = await SystemSettings.findOne({ type: "dashboard_config" });
     if (!settings) {
-      settings = new SystemSettings({
-        type: "dashboard_config",
-        dashboardTargetPerformance: 85,
-        dashboardShowDimensions: true,
-        dashboardShowMetrics: true
-      });
+      settings = new SystemSettings({ type: "dashboard_config", dashboardTargetPerformance: 85, dashboardShowDimensions: true, dashboardShowMetrics: true });
       await settings.save();
     }
     res.json(settings);
-  } catch (err) {
-    console.error("getDashboardSettings error:", err);
-    res.status(500).json({ error: "Failed to fetch dashboard settings" });
-  }
+  } catch (err) { res.status(500).json({ error: "Failed to fetch settings" }); }
 }
 
 async function updateDashboardSettings(req, res) {
   try {
     const { dashboardTargetPerformance, dashboardShowDimensions, dashboardShowMetrics } = req.body;
     let settings = await SystemSettings.findOne({ type: "dashboard_config" });
-    if (!settings) {
-      settings = new SystemSettings({ type: "dashboard_config" });
-    }
-
+    if (!settings) settings = new SystemSettings({ type: "dashboard_config" });
     if (dashboardTargetPerformance !== undefined) settings.dashboardTargetPerformance = dashboardTargetPerformance;
     if (dashboardShowDimensions !== undefined) settings.dashboardShowDimensions = dashboardShowDimensions;
     if (dashboardShowMetrics !== undefined) settings.dashboardShowMetrics = dashboardShowMetrics;
-
     await settings.save();
     res.json(settings);
-  } catch (err) {
-    console.error("updateDashboardSettings error:", err);
-    res.status(500).json({ error: "Failed to update dashboard settings" });
-  }
+  } catch (err) { res.status(500).json({ error: "Failed to update settings" }); }
+}
+
+async function listVersions(req, res) {
+  try {
+    const versions = await sql.ModelVersion.findAll({
+      attributes: [[sql.sequelize.fn('DISTINCT', sql.sequelize.col('version')), 'version']],
+      order: [['version', 'ASC']]
+    });
+    res.json(versions.map(v => v.version));
+  } catch (e) { res.status(500).json({ error: "Failed to list versions" }); }
+}
+
+async function batchCreateAssignments(req, res) {
+  try {
+    const { group, version, evaluation_scorings = [], deadline } = req.body;
+    if (!group || !version) return res.status(400).json({ error: "Missing group or version batch name" });
+    const outputs = await sql.EvaluationOutput.findAll({
+      include: [{ model: sql.ModelVersion, as: 'modelVersion', where: { version } }]
+    });
+    if (!outputs.length) return res.status(400).json({ error: `No items found for version: ${version}` });
+    const selectedScorings = await scoringService.getScoringsByIds(evaluation_scorings);
+    const scoringSnapshot = evaluation_scorings.map(id => {
+      const s = selectedScorings.find(sc => String(sc?._id) === String(id));
+      if (!s) return null;
+      return {
+        _id: String(s._id), dimension_name: s.dimension_name, type: s.type,
+        min_range: s.min_range, max_range: s.max_range, criteria: s.criteria
+      };
+    }).filter(Boolean);
+
+    for (const o of outputs) {
+      await sql.EvaluationAssignment.create({
+        group, output_id: o.id, deadline: deadline ? new Date(deadline) : null,
+        status: 'PENDING', scoring_ids: scoringSnapshot.map(s => s._id), scoring_snapshot: scoringSnapshot
+      });
+    }
+    res.status(201).json({ message: `Created ${outputs.length} assignments.` });
+  } catch (e) { res.status(400).json({ error: "Failed batch creation" }); }
 }
 
 module.exports = {
-  // users
-  listUsers,
-  createUser,
-  updateUser,
-  deleteUser,
-  // scorings
-  listScorings,
-  createScoring,
-  updateScoring,
-  deleteScoring,
-  // evaluations
-  listEvaluations,
-  createEvaluation,
-  // assignments
-  listAssignments,
-  createAssignment,
-  updateAssignment,
-  deleteAssignment,
-  // maintenance
-  getMaintenance,
-  setMaintenance,
-  getDashboardStats,
-  getEvaluationAnalytics,
-  getDashboardSettings,
-  updateDashboardSettings
+  listUsers, createUser, updateUser, deleteUser,
+  listScorings, createScoring, updateScoring, deleteScoring,
+  listEvaluations, createEvaluation, listVersions,
+  listAssignments, createAssignment, updateAssignment, deleteAssignment,
+  getMaintenance, setMaintenance, getDashboardStats, getEvaluationAnalytics,
+  getDashboardSettings, updateDashboardSettings, batchCreateAssignments
 };

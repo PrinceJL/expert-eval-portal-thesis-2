@@ -361,28 +361,28 @@ export default function Messaging() {
   }
 
   return (
-    <div className="container mx-auto p-4 flex flex-col">
-      <div className="mb-4">
+    <div className="w-full max-w-full px-4 md:px-8 flex flex-col h-[calc(100vh-250px)]">
+      <div className="mb-2 shrink-0">
         <div>
           <h1 className="text-2xl font-bold">Messaging</h1>
-          <p className="text-base-content/70">Connect with Admin support.</p>
+          <p className="text-sm text-base-content/70">Connect with Admin support.</p>
         </div>
       </div>
 
       {error ? (
-        <div role="alert" className="alert alert-error mb-4">
+        <div role="alert" className="alert alert-error mb-2 shrink-0">
           <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           <span>{error}</span>
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-0 md:gap-6 min-h-[75vh] md:h-[75vh] bg-base-200 rounded-xl border border-base-300 shadow-2xl overflow-hidden">
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-[320px_1fr] gap-0 md:gap-4 bg-base-200 rounded-xl border border-base-300 shadow-2xl overflow-hidden min-h-0">
         {/* Contacts Sidebar */}
-        <div className={`flex flex-col border-r border-base-200 bg-base-200/30 ${selected ? 'hidden md:flex' : 'flex'} h-[75vh] md:h-auto`}>
+        <div className={`flex flex-col border-r border-base-200 bg-base-200/30 ${selected ? 'hidden md:flex' : 'flex'} h-full min-h-0`}>
           <div className="p-4 border-b border-base-200 bg-base-100">
             <h2 className="font-semibold text-lg">Contacts</h2>
           </div>
-          <div className="overflow-y-auto flex-1 p-2 space-y-3">
+          <div className="overflow-y-auto custom-scrollbar flex-1 p-2 space-y-3">
             {contacts.map((c) => {
               const isActive = selected?.id === c.id;
               const roleTheme = getRoleTheme(c.role);
@@ -463,7 +463,7 @@ export default function Messaging() {
         </div>
 
         {/* Chat Area */}
-        <div className={`flex flex-col min-h-0 bg-base-100 relative ${!selected ? 'hidden md:flex' : 'flex'} h-[75vh] md:h-auto`}>
+        <div className={`flex flex-col min-h-0 bg-base-100 relative ${!selected ? 'hidden md:flex' : 'flex'} h-full min-h-0`}>
           {!selected ? (
             <div className="flex-1 flex flex-col items-center justify-center text-base-content/50 p-8 text-center">
               <div className="w-24 h-24 bg-base-200 rounded-full flex items-center justify-center mb-4">
@@ -529,7 +529,7 @@ export default function Messaging() {
               </div>
 
               {/* Messages List */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-base-200/10">
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4 bg-base-200/10">
                 {messages.map((m) => {
                   const mine = String(m.senderId) === String(user.id);
                   return (

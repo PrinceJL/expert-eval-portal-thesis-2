@@ -63,6 +63,41 @@ body,
   background: linear-gradient(180deg, rgba(113, 140, 182, 0.95) 0%, rgba(84, 110, 158, 0.95) 100%);
 }
 
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+[data-theme="dark"] .custom-scrollbar {
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+[data-theme="dark"] .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
 [data-theme="dark"] *::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.08);
 }

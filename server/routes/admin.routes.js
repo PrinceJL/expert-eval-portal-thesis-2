@@ -27,11 +27,12 @@ router.delete("/scorings/:id", adminController.deleteScoring);
 // Evaluations
 router.get("/evaluations", adminController.listEvaluations);
 router.post("/evaluations", adminController.createEvaluation);
+router.get("/versions", adminController.listVersions);
 
-// Assignments
 // Assignments
 router.get("/assignments", adminController.listAssignments);
 router.post("/assignments", adminController.createAssignment);
+router.post("/assignments/batch", adminController.batchCreateAssignments);
 router.patch("/assignments/:id", adminController.updateAssignment);
 router.delete("/assignments/:id", adminController.deleteAssignment);
 

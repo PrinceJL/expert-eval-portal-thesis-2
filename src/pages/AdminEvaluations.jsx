@@ -63,6 +63,7 @@ export default function AdminEvaluations() {
   const [scorings, setScorings] = useState([]);
   const [users, setUsers] = useState([]);
   const [assignments, setAssignments] = useState([]);
+  const [versions, setVersions] = useState([]);
   const [analytics, setAnalytics] = useState({ modelComparison: [], dimensionSummary: [] });
 
   const [editingDimension, setEditingDimension] = useState(null);
@@ -108,6 +109,15 @@ export default function AdminEvaluations() {
     deadline_time: ''
   });
 
+  const [batchAssignMode, setBatchAssignMode] = useState('single');
+  const [batchForm, setBatchForm] = useState({
+    group: '',
+    version: '',
+    scoringIds: [],
+    deadline_date: '',
+    deadline_time: ''
+  });
+
   const [viewEval, setViewEval] = useState(null);
 
   const expertUsers = useMemo(() => users.filter((u) => u.role === 'EXPERT' && u.isActive), [users]);
@@ -121,17 +131,19 @@ export default function AdminEvaluations() {
     setLoading(true);
     setError('');
     try {
-      const [evs, scs, us, asn, analyticsData] = await Promise.all([
+      const [evs, scs, us, asn, vrs, analyticsData] = await Promise.all([
         apiFetch('/admin/evaluations'),
         apiFetch('/admin/scorings'),
         apiFetch('/admin/users'),
         apiFetch('/admin/assignments'),
+        apiFetch('/admin/versions'),
         apiFetch('/admin/analytics')
       ]);
       setEvaluations(Array.isArray(evs) ? evs : []);
       setScorings(Array.isArray(scs) ? scs : []);
       setUsers(Array.isArray(us) ? us : []);
       setAssignments(Array.isArray(asn) ? asn : []);
+      setVersions(Array.isArray(vrs) ? vrs : []);
       setAnalytics({
         modelComparison: Array.isArray(analyticsData?.modelComparison) ? analyticsData.modelComparison : [],
         dimensionSummary: Array.isArray(analyticsData?.dimensionSummary) ? analyticsData.dimensionSummary : []
@@ -430,12 +442,14 @@ export default function AdminEvaluations() {
   }
 
   function toggleScoring(id) {
-    setAssignForm((p) => {
-      const set = new Set(p.scoringIds);
-      if (set.has(id)) set.delete(id);
-      else set.add(id);
-      return { ...p, scoringIds: Array.from(set) };
-    });
+    const isBatch = batchAssignMode === 'batch';
+    const form = isBatch ? batchForm : assignForm;
+    const set = new Set(form.scoringIds);
+    if (set.has(id)) set.delete(id);
+    else set.add(id);
+
+    if (isBatch) setBatchForm(p => ({ ...p, scoringIds: Array.from(set) }));
+    else setAssignForm(p => ({ ...p, scoringIds: Array.from(set) }));
   }
 
   async function createAssignment(e) {
@@ -443,31 +457,45 @@ export default function AdminEvaluations() {
     setMsg('');
     setError('');
 
-    if (!assignForm.group || !assignForm.evaluation || !assignForm.scoringIds.length) {
-      setError('Choose a group, evaluation, and at least one scoring dimension');
+    const isBatch = batchAssignMode === 'batch';
+    const form = isBatch ? batchForm : assignForm;
+
+    if (!form.group || (!isBatch && !form.evaluation) || (isBatch && !form.version) || !form.scoringIds.length) {
+      setError('Choose a group, ' + (isBatch ? 'version' : 'evaluation') + ', and at least one scoring dimension');
       return;
     }
 
-    const deadline = assignForm.deadline_date
-      ? `${assignForm.deadline_date}T${assignForm.deadline_time || '23:59'}`
+    const deadline = form.deadline_date
+      ? `${form.deadline_date}T${form.deadline_time || '23:59'}`
       : '';
 
-    const payload = {
-      group: assignForm.group,
-      evaluation: assignForm.evaluation,
-      evaluation_scorings: assignForm.scoringIds,
+    const payload = isBatch ? {
+      group: form.group,
+      version: form.version,
+      evaluation_scorings: form.scoringIds,
+      ...(deadline ? { deadline } : {})
+    } : {
+      group: form.group,
+      evaluation: form.evaluation,
+      evaluation_scorings: form.scoringIds,
       ...(deadline ? { deadline } : {})
     };
 
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload.evaluation)) {
+    if (!isBatch && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload.evaluation)) {
       setError('Selected evaluation is invalid. Please reselect the evaluation and try again.');
       return;
     }
 
     try {
-      await apiFetch('/admin/assignments', { method: 'POST', body: JSON.stringify(payload) });
-      setMsg('Assignment created.');
-      setAssignForm({ group: '', evaluation: '', scoringIds: [], deadline_date: '', deadline_time: '' });
+      const url = isBatch ? '/admin/assignments/batch' : '/admin/assignments';
+      const res = await apiFetch(url, { method: 'POST', body: JSON.stringify(payload) });
+      setMsg(isBatch ? (res.message || 'Batch assignments created.') : 'Assignment created.');
+      
+      if (isBatch) {
+        setBatchForm({ group: '', version: '', scoringIds: [], deadline_date: '', deadline_time: '' });
+      } else {
+        setAssignForm({ group: '', evaluation: '', scoringIds: [], deadline_date: '', deadline_time: '' });
+      }
       await loadAll();
     } catch (e2) {
       setError(e2.message);
@@ -783,10 +811,24 @@ export default function AdminEvaluations() {
                   <div className="division h-px bg-base-200 my-2"></div>
 
                   <form onSubmit={createAssignment} className="space-y-4">
+                    <div className="tabs tabs-boxed bg-base-200/50 p-1 mb-4">
+                      <a className={`tab tab-sm flex-1 ${batchAssignMode === 'single' ? 'tab-active' : ''}`} onClick={() => setBatchAssignMode('single')}>Single</a>
+                      <a className={`tab tab-sm flex-1 ${batchAssignMode === 'batch' ? 'tab-active' : ''}`} onClick={() => setBatchAssignMode('batch')}>Batch (By Version)</a>
+                    </div>
+
                     <div className="form-control">
                       <label className="label"><span className="label-text font-medium">Select Organization</span></label>
                       <div className="admin-eval-select-wrap">
-                        <select className="select select-bordered w-full admin-eval-field admin-eval-select" value={assignForm.group} onChange={(e) => setAssignForm((p) => ({ ...p, group: e.target.value }))} required>
+                        <select 
+                          className="select select-bordered w-full admin-eval-field admin-eval-select" 
+                          value={batchAssignMode === 'batch' ? batchForm.group : assignForm.group} 
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (batchAssignMode === 'batch') setBatchForm(p => ({ ...p, group: val }));
+                            else setAssignForm(p => ({ ...p, group: val }));
+                          }} 
+                          required
+                        >
                           <option value="">Choose...</option>
                           {activeGroups.map((g) => (
                             <option key={g} value={g}>{g}</option>
@@ -799,28 +841,50 @@ export default function AdminEvaluations() {
                         </span>
                       </div>
                     </div>
-                    <div className="form-control">
-                      <label className="label"><span className="label-text font-medium">Select Evaluation</span></label>
-                      <div className="admin-eval-select-wrap">
-                        <select className="select select-bordered w-full admin-eval-field admin-eval-select" value={assignForm.evaluation} onChange={(e) => setAssignForm((p) => ({ ...p, evaluation: e.target.value }))} required>
-                          <option value="">Choose...</option>
-                          {evaluations.map((ev) => {
-                            const evId = getEvaluationId(ev);
-                            if (!evId) return null;
-                            return (
-                              <option key={evId} value={evId}>
-                                {ev.filename} ({ev.items?.length || 0} items)
-                              </option>
-                            );
-                          })}
-                        </select>
-                        <span className="admin-eval-select-caret" aria-hidden="true">
-                          <svg viewBox="0 0 20 20" width="14" height="14" fill="none">
-                            <path d="M5 7.5 10 12.5 15 7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        </span>
+
+                    {batchAssignMode === 'single' ? (
+                      <div className="form-control">
+                        <label className="label"><span className="label-text font-medium">Select Evaluation Item</span></label>
+                        <div className="admin-eval-select-wrap">
+                          <select className="select select-bordered w-full admin-eval-field admin-eval-select" value={assignForm.evaluation} onChange={(e) => setAssignForm((p) => ({ ...p, evaluation: e.target.value }))} required>
+                            <option value="">Choose...</option>
+                            {evaluations.map((ev) => {
+                              const evId = getEvaluationId(ev);
+                              if (!evId) return null;
+                              return (
+                                <option key={evId} value={evId}>
+                                  {ev.filename} ({ev.items?.length || 0} items)
+                                </option>
+                              );
+                            })}
+                          </select>
+                          <span className="admin-eval-select-caret" aria-hidden="true">
+                            <svg viewBox="0 0 20 20" width="14" height="14" fill="none">
+                              <path d="M5 7.5 10 12.5 15 7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </span>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="form-control animate-fade-in">
+                        <label className="label"><span className="label-text font-medium text-primary">Select Version (Assigns all matching items)</span></label>
+                        <div className="admin-eval-select-wrap">
+                          <select className="select select-bordered select-primary w-full admin-eval-field admin-eval-select" value={batchForm.version} onChange={(e) => setBatchForm((p) => ({ ...p, version: e.target.value }))} required>
+                            <option value="">Choose Batch (Version)...</option>
+                            {versions.map((v) => (
+                              <option key={v} value={v}>
+                                {v}
+                              </option>
+                            ))}
+                          </select>
+                          <span className="admin-eval-select-caret" aria-hidden="true">
+                            <svg viewBox="0 0 20 20" width="14" height="14" fill="none">
+                              <path d="M5 7.5 10 12.5 15 7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </span>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="form-control">
                       <label className="label"><span className="label-text font-medium">Scoring Dimensions</span></label>
@@ -829,9 +893,9 @@ export default function AdminEvaluations() {
                         {scorings.map((s) => (
                           <label
                             key={s._id}
-                            className={`label cursor-pointer justify-start gap-3 hover:bg-base-200 rounded p-2 transition-colors admin-eval-scoring-item${assignForm.scoringIds.includes(s._id) ? ' admin-eval-scoring-item-selected' : ''}`}
+                            className={`label cursor-pointer justify-start gap-3 hover:bg-base-200 rounded p-2 transition-colors admin-eval-scoring-item${(batchAssignMode === 'batch' ? batchForm.scoringIds : assignForm.scoringIds).includes(s._id) ? ' admin-eval-scoring-item-selected' : ''}`}
                           >
-                            <input type="checkbox" className="checkbox checkbox-sm checkbox-accent admin-eval-score-checkbox" checked={assignForm.scoringIds.includes(s._id)} onChange={() => toggleScoring(s._id)} />
+                            <input type="checkbox" className="checkbox checkbox-sm checkbox-accent admin-eval-score-checkbox" checked={(batchAssignMode === 'batch' ? batchForm.scoringIds : assignForm.scoringIds).includes(s._id)} onChange={() => toggleScoring(s._id)} />
                             <div className="leading-tight">
                               <span className="font-semibold block">{s.dimension_name}</span>
                               <span className="text-xs opacity-60 block">{s.type} ({s.min_range}-{s.max_range})</span>
@@ -847,14 +911,22 @@ export default function AdminEvaluations() {
                         <input
                           type="date"
                           className="input input-bordered w-full admin-eval-field admin-eval-deadline-date"
-                          value={assignForm.deadline_date}
-                          onChange={(e) => setAssignForm((p) => ({ ...p, deadline_date: e.target.value }))}
+                          value={batchAssignMode === 'batch' ? batchForm.deadline_date : assignForm.deadline_date}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (batchAssignMode === 'batch') setBatchForm(p => ({ ...p, deadline_date: val }));
+                            else setAssignForm(p => ({ ...p, deadline_date: val }));
+                          }}
                         />
                         <input
                           type="time"
                           className="input input-bordered w-full admin-eval-field admin-eval-deadline-time"
-                          value={assignForm.deadline_time}
-                          onChange={(e) => setAssignForm((p) => ({ ...p, deadline_time: e.target.value }))}
+                          value={batchAssignMode === 'batch' ? batchForm.deadline_time : assignForm.deadline_time}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (batchAssignMode === 'batch') setBatchForm(p => ({ ...p, deadline_time: val }));
+                            else setAssignForm(p => ({ ...p, deadline_time: val }));
+                          }}
                         />
                       </div>
                       <span className="text-xs opacity-60 mt-1 block admin-eval-deadline-note">
@@ -863,7 +935,9 @@ export default function AdminEvaluations() {
                     </div>
 
                     <div className="card-actions justify-end mt-4">
-                      <button className="btn btn-accent w-full admin-eval-submit-btn" type="submit">Assign Task</button>
+                      <button className="btn btn-accent w-full admin-eval-submit-btn" type="submit">
+                        {batchAssignMode === 'batch' ? 'Run Batch Assignment' : 'Assign Task'}
+                      </button>
                     </div>
                   </form>
                 </div>
@@ -964,14 +1038,82 @@ export default function AdminEvaluations() {
                                 onClick={() => handleDeleteAssignment(getAssignmentId(a))}
                                 title="Delete"
                               >
-                                <TrashIcon className="w-4 h-4" />
-                              </button>
-                            </td>
-                          </tr>
+                                  <TrashIcon className="w-4 h-4" />
+                                </button>
+                              </td>
+                            </tr>
                         ))}
                         {!assignments.length && <tr><td colSpan="4" className="text-center opacity-50 py-4">No data</td></tr>}
                       </tbody>
                     </table>
+                  </div>
+                </div>
+              </div>
+
+              {/* Multi-Model Comparison (Moved to bottom) */}
+              <div className="card bg-base-100 shadow-lg border border-base-200 mt-6 col-span-1 xl:col-span-2">
+                <div className="card-body p-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="card-title text-lg">Thesis Analytics and Multi-Model Comparison</h3>
+                    <button type="button" className="btn btn-sm btn-outline" onClick={exportAnalyticsCsv}>
+                      Export CSV
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-4">
+                    <div className="overflow-x-auto rounded-xl border border-base-300">
+                      <table className="table table-compact w-full">
+                        <thead>
+                          <tr>
+                            <th>Model</th>
+                            <th>Version</th>
+                            <th>Avg Score</th>
+                            <th>Completed</th>
+                            <th>Distress Fail</th>
+                            <th>Major Error</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(analytics.modelComparison || []).map((row) => (
+                            <tr key={`${row.modelName}-${row.modelVersion}`}>
+                              <td className="font-medium">{row.modelName}</td>
+                              <td>{row.modelVersion}</td>
+                              <td>{row.avgScore ?? '-'}</td>
+                              <td>{row.completedAssignments}/{row.totalAssignments}</td>
+                              <td>{row.distressFails}</td>
+                              <td>{row.majorErrors}</td>
+                            </tr>
+                          ))}
+                          {!analytics.modelComparison?.length ? (
+                            <tr><td colSpan="6" className="text-center opacity-60 py-4">No submitted evaluations yet.</td></tr>
+                          ) : null}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="overflow-x-auto rounded-xl border border-base-300">
+                      <table className="table table-compact w-full">
+                        <thead>
+                          <tr>
+                            <th>Dimension</th>
+                            <th>Avg Score</th>
+                            <th>Responses</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(analytics.dimensionSummary || []).map((row) => (
+                            <tr key={row.dimensionName}>
+                              <td className="font-medium">{row.dimensionName}</td>
+                              <td>{row.avgScore ?? '-'}</td>
+                              <td>{row.responses}</td>
+                            </tr>
+                          ))}
+                          {!analytics.dimensionSummary?.length ? (
+                            <tr><td colSpan="3" className="text-center opacity-60 py-4">No dimension data yet.</td></tr>
+                          ) : null}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1040,72 +1182,7 @@ export default function AdminEvaluations() {
               </div>
             </div>
 
-            <div className="card bg-base-100 shadow-lg border border-base-200 mt-6">
-              <div className="card-body p-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="card-title text-lg">Thesis Analytics and Multi-Model Comparison</h3>
-                  <button type="button" className="btn btn-sm btn-outline" onClick={exportAnalyticsCsv}>
-                    Export CSV
-                  </button>
-                </div>
 
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-4">
-                  <div className="overflow-x-auto rounded-xl border border-base-300">
-                    <table className="table table-compact w-full">
-                      <thead>
-                        <tr>
-                          <th>Model</th>
-                          <th>Version</th>
-                          <th>Avg Score</th>
-                          <th>Completed</th>
-                          <th>Distress Fail</th>
-                          <th>Major Error</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(analytics.modelComparison || []).map((row) => (
-                          <tr key={`${row.modelName}-${row.modelVersion}`}>
-                            <td className="font-medium">{row.modelName}</td>
-                            <td>{row.modelVersion}</td>
-                            <td>{row.avgScore ?? '-'}</td>
-                            <td>{row.completedAssignments}/{row.totalAssignments}</td>
-                            <td>{row.distressFails}</td>
-                            <td>{row.majorErrors}</td>
-                          </tr>
-                        ))}
-                        {!analytics.modelComparison?.length ? (
-                          <tr><td colSpan="6" className="text-center opacity-60 py-4">No submitted evaluations yet.</td></tr>
-                        ) : null}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div className="overflow-x-auto rounded-xl border border-base-300">
-                    <table className="table table-compact w-full">
-                      <thead>
-                        <tr>
-                          <th>Dimension</th>
-                          <th>Avg Score</th>
-                          <th>Responses</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(analytics.dimensionSummary || []).map((row) => (
-                          <tr key={row.dimensionName}>
-                            <td className="font-medium">{row.dimensionName}</td>
-                            <td>{row.avgScore ?? '-'}</td>
-                            <td>{row.responses}</td>
-                          </tr>
-                        ))}
-                        {!analytics.dimensionSummary?.length ? (
-                          <tr><td colSpan="3" className="text-center opacity-60 py-4">No dimension data yet.</td></tr>
-                        ) : null}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         )}
 

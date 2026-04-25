@@ -394,41 +394,7 @@ export default function Dashboard() {
                     </aside>
                 </section>
 
-                <section className="rounded-2xl border border-base-300/80 bg-base-100/70 p-4 shadow-xl backdrop-blur-sm sm:p-5">
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                        <h2 className="text-xl font-bold">Multi-Model Comparison</h2>
-                        <span className="text-xs opacity-60">{modelComparison.length} model(s)</span>
-                    </div>
-                    <div className="w-full overflow-x-auto rounded-xl border border-base-300/70 bg-base-200/20">
-                        <table className="table table-zebra w-full">
-                            <thead>
-                                <tr className="text-xs uppercase tracking-wide">
-                                    <th>Model</th>
-                                    <th>Version</th>
-                                    <th>Avg Score</th>
-                                    <th>Completed</th>
-                                    <th>Distress Fails</th>
-                                    <th>Major Errors</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {modelComparison.map((row) => (
-                                    <tr key={`${row.modelName}-${row.modelVersion}`}>
-                                        <td className="font-semibold">{row.modelName}</td>
-                                        <td>{row.modelVersion}</td>
-                                        <td>{row.avgScore ?? "-"}</td>
-                                        <td>{row.completedAssignments}/{row.totalAssignments}</td>
-                                        <td>{row.distressFails}</td>
-                                        <td>{row.majorErrors}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        {modelComparison.length === 0 ? (
-                            <p className="py-6 text-center text-sm opacity-60">No final submissions yet.</p>
-                        ) : null}
-                    </div>
-                </section>
+
 
                 <section className="space-y-3">
                     <div className="flex items-center justify-between">
